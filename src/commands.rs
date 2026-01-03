@@ -243,12 +243,28 @@ fn get_role_id(target_role: &str, roles: &HashMap<RoleId, Role>) -> Option<RoleI
     None
 }
 
+async fn autocomplete_role<'a>(
+    ctx: Context<'_>,
+    partial: &'a str,
+) -> impl Iterator<Item = String> + 'a {
+    let guild_id = ctx.guild_id().expect("Unable to get guild ID");
+    let guild_roles = guild_id.roles(&ctx).await
+        .expect("Unable to get guild roles");
+
+    guild_roles
+        .into_values()
+        .map(|r| r.name)
+        .filter(move |s| s.starts_with(partial))
+}
+
 /// Add role(s)
 #[poise::command(prefix_command, slash_command, guild_only)]
 pub async fn add(
     ctx: Context<'_>,
     #[rest]
-    #[description = "Role(s) to add"] roles: String,
+    #[description = "Role(s) to add"] 
+    #[autocomplete = "autocomplete_role"]
+    roles: String,
 ) -> Result<(), Error> {
     let guild_id = ctx.guild_id().ok_or("Unable to get guild ID")?;
     let guild_roles = guild_id.roles(&ctx).await?;
@@ -266,7 +282,7 @@ pub async fn add(
                 user.add_role(&ctx, id).await?;
                 added_roles.push_str(role);
                 added_roles.push(' ');
-            // Failed to get ID for some reason
+            // Failed to get ID
             } else {
                 unsuccessful_roles.push_str(role);
                 unsuccessful_roles.push(' ');
