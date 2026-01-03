@@ -57,6 +57,7 @@ async fn main() {
             commands::mock(),
             commands::list_roles(),
             commands::add(),
+            commands::del(),
         ],
         prefix_options: poise::PrefixFrameworkOptions {
             prefix: Some("!".into()),

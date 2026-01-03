@@ -299,3 +299,38 @@ pub async fn add(
 
     Ok(())
 }
+
+/// Delete role(s)
+#[poise::command(prefix_command, slash_command, guild_only)]
+pub async fn del(
+    ctx: Context<'_>,
+    #[rest]
+    #[description = "Role(s) to delete"] 
+    // #[autocomplete = "autocomplete_role"]
+    roles: String,
+) -> Result<(), Error> {
+    let member = ctx.author_member().await.ok_or("Unable to get member")?;
+    let member_roles = member.roles(ctx).ok_or("Member has no roles")?;
+
+    let mut deleted_roles = String::new();
+    let mut unsuccessful_roles = String::new();
+    for role in roles.split_whitespace() {
+        if let Some(role_id) = member_roles.iter().find(|r| r.name == role) {
+            member.remove_role(&ctx, role_id).await?;
+            deleted_roles.push_str(role);
+            deleted_roles.push(' ');
+        } else {
+            unsuccessful_roles.push_str(role);
+            unsuccessful_roles.push(' ');
+        }
+    }
+
+    if !unsuccessful_roles.is_empty() {
+        ctx.say(format!("**Unable** to delete: {}", unsuccessful_roles)).await?;
+    }
+    if !deleted_roles.is_empty() {
+        ctx.say(format!("Successfully deleted: {}", deleted_roles)).await?;
+    }
+
+    Ok(())
+}
