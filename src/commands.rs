@@ -25,6 +25,13 @@ pub async fn help(
     Ok(())
 }
 
+/// Ping the bot
+#[poise::command(prefix_command, slash_command)]
+pub async fn ping(ctx: Context<'_>) -> Result<(), Error> {
+    ctx.say("Pong!").await?;
+    Ok(())
+}
+
 /// Vote for something
 ///
 /// Enter `!vote pumpkin` to vote for pumpkins

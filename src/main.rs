@@ -59,6 +59,7 @@ async fn main() {
             commands::add(),
             commands::del(),
             commands::create_roles(),
+            commands::ping(),
         ],
         prefix_options: poise::PrefixFrameworkOptions {
             prefix: Some("!".into()),
