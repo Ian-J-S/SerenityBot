@@ -1,7 +1,8 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::hash::Hash;
 
 use crate::{Context, Error};
-use poise::{serenity_prelude::{self as serenity, RoleId, Role}, CreateReply};
+use poise::{serenity_prelude::{self as serenity, EditRole, Role, RoleId}, CreateReply};
 use rand::Rng;
 
 /// Show this help menu
@@ -338,6 +339,50 @@ pub async fn del(
     if !deleted_roles.is_empty() {
         ctx.say(format!("Successfully deleted: {}", deleted_roles)).await?;
     }
+
+    Ok(())
+}
+
+/// Helper function to check if a vector has duplicates.
+// Found this online
+fn has_duplicates<T>(iter: T) -> bool
+where
+    T: IntoIterator,
+    T::Item: Eq + Hash,
+{
+    let mut uniq = HashSet::new();
+    !iter.into_iter().all(|x| uniq.insert(x))
+}
+
+/// Helper function to create multiple roles. Hidden from help menu 
+/// because only for privileged users.
+#[poise::command(prefix_command, slash_command, guild_only, hide_in_help,
+required_permissions = "MANAGE_ROLES")]
+pub async fn create_roles(
+    ctx: Context<'_>,
+    #[rest]
+    #[description = "Names of role(s) you wish to create"]
+    roles: String
+) -> Result<(), Error> {
+    let guild_id = ctx.guild_id().ok_or("Unable to get guild_id")?;
+    let existing_roles = guild_id.roles(&ctx).await?;
+
+    // Do not allow roles with duplicate names to be created
+    if has_duplicates(roles.split_whitespace())
+        || existing_roles.values().any(|r| roles.contains(&r.name)) {
+        ctx.say("Duplicate role(s) found, unable to create").await?;
+        return Ok(());
+    }
+    
+    let mut created_roles = String::new();
+    for role in roles.split_whitespace() {
+        let builder = EditRole::new().name(role).mentionable(true);
+        guild_id.create_role(&ctx, builder).await?;
+        created_roles.push_str(role);
+        created_roles.push(' ');
+    }
+
+    ctx.say(format!("Successfully created roles: {created_roles}")).await?;
 
     Ok(())
 }
