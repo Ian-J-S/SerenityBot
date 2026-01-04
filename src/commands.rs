@@ -2,7 +2,8 @@ use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 
 use crate::{Context, Error};
-use poise::{serenity_prelude::{self as serenity, EditRole, Role, RoleId}, CreateReply};
+use poise::serenity_prelude::ReactionType;
+use poise::{serenity_prelude::{self as serenity, EditRole, Role, RoleId, Mentionable}, CreateReply};
 use rand::Rng;
 
 /// Show this help menu
@@ -401,17 +402,91 @@ pub async fn my_roles(
 ) -> Result<(), Error> {
     let member = ctx.author_member().await.ok_or("Unable to get guild member")?;
     let message = if let Some(roles) = member.roles(ctx) {
-        let role_list = roles
+        let roles_str = roles
             .iter()
             .map(|r| r.name.clone())
             .collect::<Vec<String>>()
             .join("\n- ");
-        format!("Your roles:\n- {role_list}")
+        format!("Your roles:\n- {roles_str}")
     } else {
         String::from("You haven't added any roles yet!")
     };
 
     ctx.say(message).await?;
+
+    Ok(())
+}
+
+/// Helper function to get a random roll value
+fn die_roll(die: u32) -> u32 {
+    let mut rng = rand::rng();
+    rng.random_range(1..=die)
+}
+
+/// Roll some dice 
+///
+/// Enter a roll count and a die value optionally prefixed with  'd'
+/// ```
+/// !roll 5
+/// !roll 5 d20
+/// ```
+#[poise::command(prefix_command, slash_command)]
+pub async fn roll(
+    ctx: Context<'_>,
+    #[min = 1]
+    #[max = 100] // Min and max only apply to slash commands
+    #[description = "Number of rolls to make"]
+    roll_count: Option<u32>,
+    #[description = "Dice type"]
+    arg2: Option<String>,
+) -> Result<(), Error> {
+    // Add a reaction if the command was a prefix command.
+    // I don't think it is possible to do this with a slash command.
+    if let poise::Context::Prefix(pctx) = ctx {
+        pctx.msg.react(&pctx, ReactionType::Unicode("🎲".to_string())).await?;
+    }
+
+    // Default to 2 rolls
+    let roll_count = roll_count.unwrap_or(2);
+
+    let author = ctx.author().mention();
+
+    // Since min and max only work with slash commands, have to bounds check here
+    if !(1..=100).contains(&roll_count) {
+        ctx.say(format!("Whoah {author}, your rolls are too powerful!")).await?;
+        return Ok(())
+    }
+
+    // Parse specified dice value or go with d6 if failure / unspecified
+    let dvalue: u32 = if let Some(dtype) = arg2.clone() && dtype.starts_with('d') {
+        dtype.split_once('d')
+            .map(|pair| pair.1)
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(6)
+    } else {
+        arg2
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(6)
+    };
+
+    // Maybe I should change this to make it easier to read, I just like list folding
+    let plurality = if roll_count > 1 { "'s" } else { "" };
+    let (_, sum, message) = (0..roll_count)
+        .fold((1, 0, format!("{author} rolled {roll_count} d{dvalue}{plurality}\n")),
+        |(count, sum, msg), _| {
+            let roll = die_roll(dvalue);
+            let roll_info = if roll == 20 && dvalue == 20 {
+                "- Critical Success! (20)"
+            } else if roll == 1 && dvalue == 20 {
+                "- Critical Failure! (1)"
+            } else {
+                ""
+            };
+            (count + 1, sum + roll, format!("{}\nRoll {}: {} {}", msg, count, roll, roll_info))
+        }
+    );
+
+    ctx.say(format!("{}\n\nSum of all rolls: {}", message, sum)).await?;
 
     Ok(())
 }
