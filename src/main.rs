@@ -38,7 +38,7 @@ async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
 }
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // tracing_subscriber::fmt::init();
     dotenv().ok();
 
@@ -133,5 +133,7 @@ async fn main() {
         .framework(framework)
         .await;
 
-    client.unwrap().start().await.unwrap()
+    client?.start().await?;
+
+    Ok(())
 }
