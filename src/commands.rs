@@ -251,10 +251,17 @@ async fn autocomplete_role<'a>(
     let guild_roles = guild_id.roles(&ctx).await
         .expect("Unable to get guild roles");
 
+    // Need to get prefix
+    // Then stick it onto the beginning of whatever suggestions come back
+    let (prefix, current) = match partial.rfind(' ') {
+        Some(i) => (&partial[..=i], &partial[i + 1..]),
+        None => ("", partial),
+    };
+
     guild_roles
         .into_values()
-        .map(|r| r.name)
-        .filter(move |s| s.starts_with(partial))
+        .map(move |r| format!("{prefix}{}", r.name))
+        .filter(move |s| s.contains(current))
 }
 
 /// Add role(s)
@@ -306,7 +313,7 @@ pub async fn del(
     ctx: Context<'_>,
     #[rest]
     #[description = "Role(s) to delete"] 
-    // #[autocomplete = "autocomplete_role"]
+    #[autocomplete = "autocomplete_role"]
     roles: String,
 ) -> Result<(), Error> {
     let member = ctx.author_member().await.ok_or("Unable to get member")?;
