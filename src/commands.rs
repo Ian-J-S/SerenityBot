@@ -393,3 +393,25 @@ pub async fn create_roles(
 
     Ok(())
 }
+
+/// List roles of user that called this command
+#[poise::command(prefix_command, slash_command, guild_only)]
+pub async fn my_roles(
+    ctx: Context<'_>,
+) -> Result<(), Error> {
+    let member = ctx.author_member().await.ok_or("Unable to get guild member")?;
+    let message = if let Some(roles) = member.roles(ctx) {
+        let role_list = roles
+            .iter()
+            .map(|r| r.name.clone())
+            .collect::<Vec<String>>()
+            .join("\n- ");
+        format!("Your roles:\n- {role_list}")
+    } else {
+        String::from("You haven't added any roles yet!")
+    };
+
+    ctx.say(message).await?;
+
+    Ok(())
+}
