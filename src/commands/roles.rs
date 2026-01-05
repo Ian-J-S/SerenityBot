@@ -12,14 +12,21 @@ pub async fn list_roles(
     let guild_id = ctx.guild_id().ok_or("Unable to get guild ID")?;
     let roles = guild_id.roles(&ctx).await?;
 
+    // Some roles to hide
+    let hidden_roles = [
+        String::from("@everyone"),
+        String::from("Moderator"),
+        String::from("SerenityBot"),
+    ];
+
     // Convert roles hashmap into vector of strings, ignore some roles
     let mut roles: Vec<String> = roles.iter()
         .filter_map(|r| {
-            let role_name = r.1.name.clone();
-            if role_name == "@everyone" {
+            let name = r.1.name.clone();
+            if hidden_roles.contains(&name) {
                 None
             } else {
-                Some(role_name.clone())
+                Some(name)
             }
         })
         .collect();
