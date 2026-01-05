@@ -39,7 +39,7 @@ async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt::init();
     dotenv().ok();
 
     // FrameworkOptions contains all of poise's configuration option in one struct
