@@ -55,9 +55,26 @@ async fn autocomplete_role<'a>(
     ctx: Context<'_>,
     partial: &'a str,
 ) -> impl Iterator<Item = String> + 'a {
-    let guild_id = ctx.guild_id().expect("Unable to get guild ID");
-    let guild_roles = guild_id.roles(&ctx).await
-        .expect("Unable to get guild roles");
+    // If adding roles, get the list of server roles.
+    // If deleting, get the user's roles.
+    // In the future I want to change this to avoid using hardcoded command names.
+    let roles: Vec<Role> = match ctx.invoked_command_name() {
+        "add" => {
+            match ctx.guild_id() {
+                Some(guild_id) => {
+                    guild_id
+                        .roles(&ctx).await.ok()
+                        // FIXME - avoid collecting values unnecessarily
+                        .map(|m| m.into_values().collect::<Vec<Role>>())},
+                None => None
+            } 
+        }
+        "del" => {
+            ctx.author_member().await
+            .and_then(|member| member.roles(ctx))
+        }
+        _ => None
+    }.unwrap_or(Vec::new());
 
     // Need to get prefix
     // Then stick it onto the beginning of whatever suggestions come back
@@ -66,8 +83,8 @@ async fn autocomplete_role<'a>(
         None => ("", partial),
     };
 
-    guild_roles
-        .into_values()
+    roles
+        .into_iter()
         .filter_map(move |r| {
             if r.name.starts_with(current) && !prefix.contains(&r.name) {
                 Some(format!("{prefix} {}", r.name))
