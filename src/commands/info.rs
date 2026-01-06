@@ -1,5 +1,5 @@
 use crate::{Context, Error};
-use poise::serenity_prelude as serenity;
+use poise::serenity_prelude::{self as serenity, Mentionable};
 
 /// Show this help menu
 #[poise::command(prefix_command, track_edits, slash_command)]
@@ -91,5 +91,17 @@ pub async fn echo(
     #[description = "Message to echo (enter a link or ID)"] msg: serenity::Message,
 ) -> Result<(), Error> {
     ctx.say(&msg.content).await?;
+    Ok(())
+}
+
+/// Tells you when you joined the server in UTC
+#[poise::command(prefix_command, slash_command, guild_only)]
+pub async fn joined(
+    ctx: Context<'_>,
+) -> Result<(), Error> {
+    let author = ctx.author_member().await.expect("Unable to retrieve command author");
+    let joined = author.joined_at.expect("Unable to retrieve join time");
+    let guild_name = ctx.guild().expect("Unable to retrieve guild").name.clone();
+    ctx.say(format!("{} joined {}\n{}", author.mention(), guild_name, joined)).await?;
     Ok(())
 }
