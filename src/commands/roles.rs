@@ -68,8 +68,13 @@ async fn autocomplete_role<'a>(
 
     guild_roles
         .into_values()
-        .map(move |r| format!("{prefix}{}", r.name))
-        .filter(move |s| s.contains(current))
+        .filter_map(move |r| {
+            if r.name.starts_with(current) && !prefix.contains(&r.name) {
+                Some(format!("{prefix} {}", r.name))
+            } else {
+                None
+            }
+        })
 }
 
 /// Add role(s)
