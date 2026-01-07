@@ -2,6 +2,8 @@ use crate::{Context, Error};
 use poise::serenity_prelude::ReactionType;
 use poise::{serenity_prelude::{self as serenity, Mentionable}, CreateReply};
 use rand::Rng;
+use reqwest::{Client, header::USER_AGENT};
+use serde_json::Value;
 
 /// Ping the bot
 #[poise::command(prefix_command, slash_command)]
@@ -187,6 +189,51 @@ pub async fn roll(
     );
 
     ctx.say(format!("{}\n\nSum of all rolls: {}", message, sum)).await?;
+
+    Ok(())
+}
+
+/// Retrieve the closest matching wikipedia article
+#[poise::command(prefix_command, slash_command)]
+pub async fn wiki(
+    ctx: Context<'_>,
+    #[rest]
+    #[description = "Article to search for"]
+    request: String,
+) -> Result<(), Error> {
+    let req = format!(
+        "https://en.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=1&explaintext=1&format=json&titles={}",
+        request
+    );
+
+    let client = Client::new();
+    let response: Value = client
+        .get(req)
+        .header(USER_AGENT, "rust-web-api-client")
+        .send()
+        .await?
+        .json()
+        .await?;
+
+    let page = response["query"]["pages"]
+        .as_object()
+        .and_then(|pages| pages.values().next());
+
+    let message = page.and_then(|page| {
+        page["title"].as_str().and_then(|title| {
+            page["extract"].as_str().map(|extract| {
+                // If the message (and some formatting) is longer than 2000 chars,
+                // truncate it
+                if title.len() + extract.len() + 6 > 2000 {
+                    format!("**{title}:**\n{}...", &extract[..(2000 - title.len() - 9)])
+                } else {
+                    format!("**{title}:**\n{}", &extract)
+                }
+            })
+        })
+    }).unwrap_or(String::from("Sorry, I couldn't find that article!"));
+
+    ctx.say(message).await?;
 
     Ok(())
 }
