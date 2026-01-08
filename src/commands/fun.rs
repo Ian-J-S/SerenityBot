@@ -222,9 +222,13 @@ pub async fn wiki(
     let message = page.and_then(|page| {
         page["title"].as_str().and_then(|title| {
             page["extract"].as_str().map(|extract| {
+                // Some articles return a title with an empty extract
+                if extract.is_empty() {
+                    String::from("That article exists but I couldn't get an extract!")
+                }
                 // If the message (and some formatting) is longer than 2000 chars,
                 // truncate it
-                if title.len() + extract.len() + 6 > 2000 {
+                else if title.len() + extract.len() + 6 > 2000 {
                     format!("**{title}:**\n{}...", &extract[..(2000 - title.len() - 9)])
                 } else {
                     format!("**{title}:**\n{}", &extract)
