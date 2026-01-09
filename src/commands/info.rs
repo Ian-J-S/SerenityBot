@@ -1,5 +1,6 @@
 use crate::{Context, Error};
 use poise::serenity_prelude::{self as serenity, Mentionable};
+use std::process::Command;
 
 /// Show this help menu
 #[poise::command(prefix_command, track_edits, slash_command)]
@@ -111,9 +112,21 @@ fn plural(n: u64) -> &'static str {
     if n == 1 { "" } else { "s" }
 }
 
-/// Gives uptime of bot 
+/// Helper function to get the uptime of the server running the bot.
+fn get_server_uptime() -> Result<String, Error> {
+    let com = Command::new("uptime")
+        .arg("-p")
+        .output()?;
+
+    let output = String::from_utf8(com.stdout)?;
+
+    Ok(output)
+}
+
+/// Gives uptime of bot and server running the bot.
 #[poise::command(prefix_command, slash_command, guild_only)]
 pub async fn uptime(ctx: Context<'_>) -> Result<(), Error> {
+    // Bot
     let duration = ctx.data().start_time.elapsed();
     let seconds = duration.as_secs();
     
@@ -121,13 +134,18 @@ pub async fn uptime(ctx: Context<'_>) -> Result<(), Error> {
     let hours = (seconds % 86400) / 3600;
     let minutes = (seconds % 3600) / 60;
     let secs = seconds % 60;
+
+    // Server
+    let server_uptime = get_server_uptime()?;
     
     ctx.say(format!(
-        "Uptime: {} day{}, {} hour{}, {} minute{}, {} second{}",
+        "Bot has been up {} day{}, {} hour{}, {} minute{}, {} second{}\n\
+        Server has been {}",
         days, plural(days),
         hours, plural(hours),
         minutes, plural(minutes),
-        secs, plural(secs)
+        secs, plural(secs),
+        server_uptime,
     )).await?;
     
     Ok(())
