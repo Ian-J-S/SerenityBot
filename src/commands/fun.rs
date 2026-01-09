@@ -140,7 +140,7 @@ pub async fn roll(
     #[description = "Number of rolls to make"]
     roll_count: Option<u32>,
     #[description = "Dice type"]
-    arg2: Option<String>,
+    sides: Option<String>,
 ) -> Result<(), Error> {
     // Add a reaction if the command was a prefix command.
     // I don't think it is possible to do this with a slash command.
@@ -160,13 +160,13 @@ pub async fn roll(
     }
 
     // Parse specified dice value or go with d6 if failure / unspecified
-    let dvalue: u32 = if let Some(dtype) = arg2.clone() && dtype.starts_with('d') {
+    let dvalue: u32 = if let Some(dtype) = sides.clone() && dtype.starts_with('d') {
         dtype.split_once('d')
             .map(|pair| pair.1)
             .and_then(|s| s.parse().ok())
             .unwrap_or(6)
     } else {
-        arg2
+        sides
             .and_then(|s| s.parse().ok())
             .unwrap_or(6)
     };
