@@ -8,7 +8,7 @@ use std::{
     collections::HashMap,
     env::var,
     sync::{Arc, Mutex},
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 // Types used by all command functions
@@ -18,6 +18,7 @@ type Context<'a> = poise::Context<'a, Data, Error>;
 // Custom user data passed to all command functions
 pub struct Data {
     votes: Mutex<HashMap<String, u32>>,
+    start_time: Instant,
 }
 
 async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
@@ -60,6 +61,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             commands::info::shutdown(),
             commands::info::vote(),
             commands::info::joined(),
+            commands::info::uptime(),
 
             commands::roles::add(),
             commands::roles::create_roles(),
@@ -123,6 +125,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
                 Ok(Data {
                     votes: Mutex::new(HashMap::new()),
+                    start_time: Instant::now(),
                 })
             })
         })

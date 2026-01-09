@@ -105,3 +105,30 @@ pub async fn joined(
     ctx.say(format!("{} joined {}\n{}", author.mention(), guild_name, joined)).await?;
     Ok(())
 }
+
+/// Helper function for printing an 's' with time values
+fn plural(n: u64) -> &'static str {
+    if n == 1 { "" } else { "s" }
+}
+
+/// Gives uptime of bot 
+#[poise::command(prefix_command, slash_command, guild_only)]
+pub async fn uptime(ctx: Context<'_>) -> Result<(), Error> {
+    let duration = ctx.data().start_time.elapsed();
+    let seconds = duration.as_secs();
+    
+    let days = seconds / 86400;
+    let hours = (seconds % 86400) / 3600;
+    let minutes = (seconds % 3600) / 60;
+    let secs = seconds % 60;
+    
+    ctx.say(format!(
+        "Uptime: {} day{}, {} hour{}, {} minute{}, {} second{}",
+        days, plural(days),
+        hours, plural(hours),
+        minutes, plural(minutes),
+        secs, plural(secs)
+    )).await?;
+    
+    Ok(())
+}
