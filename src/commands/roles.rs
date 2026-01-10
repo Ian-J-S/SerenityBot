@@ -2,6 +2,7 @@ use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
 
 use crate::{Context, Error};
+use levenshtein::levenshtein;
 use poise::{serenity_prelude::{EditRole, Role, RoleId}};
 
 /// List server roles
@@ -94,6 +95,28 @@ async fn autocomplete_role<'a>(
         })
 }
 
+/// Get suggestions that are close to the incorrect role a user entered.
+fn get_role_suggestions<'a, T>(role: &'a str, roles: T) -> Option<String> 
+where 
+    T: Iterator<Item = &'a Role>,
+{
+    let suggestions = roles.fold("".to_owned(),
+        |acc, cur| {
+            if levenshtein(role, &cur.name) <= 3 {
+                format!("{acc} {}", cur.name)    
+            } else {
+                acc
+            }
+        }
+    );
+
+    if suggestions.is_empty() {
+        None
+    } else {
+        Some(format!("(*similar roles:* {})\n", suggestions))
+    }
+}
+
 /// Add role(s)
 #[poise::command(prefix_command, slash_command, guild_only)]
 pub async fn add(
@@ -113,12 +136,17 @@ pub async fn add(
         if !guild_roles.values().any(|r| r.name == role) {
             unsuccessful_roles.push_str(role);
             unsuccessful_roles.push(' ');
+
+            let suggestion = get_role_suggestions(role, guild_roles.values());
+            if let Some(suggestion) = suggestion {
+                unsuccessful_roles.push_str(&suggestion);
+            }
         } else {
             let user = ctx.author_member().await.ok_or("Unable to get Member")?;
             if let Some(id) = get_role_id(role, &guild_roles) {
                 user.add_role(&ctx, id).await?;
                 added_roles.push_str(role);
-                added_roles.push(' ');
+                added_roles.push('\n');
             // Failed to get ID
             } else {
                 unsuccessful_roles.push_str(role);
@@ -128,10 +156,10 @@ pub async fn add(
     }
 
     if !unsuccessful_roles.is_empty() {
-        ctx.say(format!("**Unable** to add: {}", unsuccessful_roles)).await?;
+        ctx.say(format!("**Unable** to add:\n{}", unsuccessful_roles)).await?;
     }
     if !added_roles.is_empty() {
-        ctx.say(format!("Successfully added: {}", added_roles)).await?;
+        ctx.say(format!("**Successfully** added:\n{}", added_roles)).await?;
     }
 
     Ok(())
@@ -155,18 +183,23 @@ pub async fn del(
         if let Some(role_id) = member_roles.iter().find(|r| r.name == role) {
             member.remove_role(&ctx, role_id).await?;
             deleted_roles.push_str(role);
-            deleted_roles.push(' ');
+            deleted_roles.push('\n');
         } else {
             unsuccessful_roles.push_str(role);
             unsuccessful_roles.push(' ');
+
+            let suggestion = get_role_suggestions(role, member_roles.iter());
+            if let Some(suggestion) = suggestion {
+                unsuccessful_roles.push_str(&suggestion);
+            }
         }
     }
 
     if !unsuccessful_roles.is_empty() {
-        ctx.say(format!("**Unable** to delete: {}", unsuccessful_roles)).await?;
+        ctx.say(format!("**Unable** to delete:\n{}", unsuccessful_roles)).await?;
     }
     if !deleted_roles.is_empty() {
-        ctx.say(format!("Successfully deleted: {}", deleted_roles)).await?;
+        ctx.say(format!("**Successfully** deleted:\n{}", deleted_roles)).await?;
     }
 
     Ok(())
