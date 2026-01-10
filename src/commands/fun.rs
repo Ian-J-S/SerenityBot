@@ -241,3 +241,15 @@ pub async fn wiki(
 
     Ok(())
 }
+
+/// Bot says what you put.
+#[poise::command(prefix_command, slash_command)]
+pub async fn say(
+    ctx: Context<'_>,
+    #[rest]
+    #[description = "Message to say"]
+    msg: String,
+) -> Result<(), Error> {
+    ctx.say(msg).await?;
+    Ok(())
+}
