@@ -1,4 +1,5 @@
 use crate::{Context, Error};
+use chrono::Datelike;
 use poise::serenity_prelude::{GetMessages, Member, Mention, ReactionType};
 use poise::{serenity_prelude::{self as serenity, Mentionable}, CreateReply};
 use rand::{Rng, seq::IndexedRandom};
@@ -329,5 +330,27 @@ pub async fn yeet(
     ctx: Context<'_>,
 ) -> Result<(), Error> {
     ctx.say(format!("{} YEET!\nhttps://youtu.be/mbDkgGv-vJ4?t=4", ctx.author().mention())).await?;
+    Ok(())
+}
+
+/// Happy Halloween! Returns trick or treat, only works during spooktober!
+#[poise::command(prefix_command, slash_command)]
+pub async fn trickortreat(ctx: Context<'_>) -> Result<(), Error> {
+    let month = chrono::Local::now().month();
+
+    let message = if month == 10 {
+        let choices = ["Trick", "Treat"];
+        choices.choose(&mut rand::rng()).copied()
+    } else {
+        let choices = [
+            "it is not spooktober, try again later",
+            "try again in october",
+             "YOU DARE TRY TO TRICK OR TREAT WHEN IT'S NOT OCTOBER"
+        ];
+        choices.choose(&mut rand::rng()).copied()
+    }.ok_or("error in choosing random message")?;
+
+    ctx.say(message).await?;
+
     Ok(())
 }

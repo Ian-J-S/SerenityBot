@@ -55,6 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             commands::fun::ping(),
             commands::fun::roll(),
             commands::fun::say(),
+            commands::fun::trickortreat(),
             commands::fun::wiki(),
             commands::fun::yeet(),
 
