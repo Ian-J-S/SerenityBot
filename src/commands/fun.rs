@@ -1,7 +1,7 @@
 use crate::{Context, Error};
-use poise::serenity_prelude::ReactionType;
+use poise::serenity_prelude::{GetMessages, Member, Mention, ReactionType};
 use poise::{serenity_prelude::{self as serenity, Mentionable}, CreateReply};
-use rand::Rng;
+use rand::{Rng, seq::IndexedRandom};
 use reqwest::{Client, header::USER_AGENT};
 use serde_json::Value;
 
@@ -251,5 +251,72 @@ pub async fn say(
     msg: String,
 ) -> Result<(), Error> {
     ctx.say(msg).await?;
+    Ok(())
+}
+
+/// Helper function to chooose a random 'ban' message
+fn choose_ban_msg(user_mentioned: Mention) -> String {
+    let ban_messages = [
+        format!("brb, banning {user_mentioned}."),
+        format!("you got it, banning {user_mentioned}."),
+        format!("{user_mentioned}, you must pay for your crimes. A ban shall suffice."),
+        format!("today's controvesial opinion reward goes to {user_mentioned}. The prize? A ban, duh."),
+        format!("{user_mentioned} gotta ban you now. Sorry."),
+        format!("{user_mentioned} stop talking before you--oh, wait. Too late."),
+        format!("{user_mentioned}, really? I wish I could ban you more than once."),
+        format!("{user_mentioned} the game of hide and seek is over, tag, you're banned."),
+        String::from("Banned: the server has automatically banned you for saying a bad word."),
+    ];
+
+    let ban_easter_eggs = [
+        format!("{user_mentioned} I WARNED YOU ABOUT STAIRS BRO. I TOLD YOU."),
+        format!("Let's be honest with ourselves: we just wanted to ping {user_mentioned} twice."),
+        format!("{user_mentioned} has broken the unspoken rule."),
+    ];
+
+    let mut rng = rand::rng();
+    let odds = rng.random_range(1..=1000);
+
+    if odds > 900 {
+        ban_easter_eggs.choose(&mut rng)
+            .unwrap_or(&ban_easter_eggs[0]).to_string()
+    } else {
+        ban_messages.choose(&mut rng)
+            .unwrap_or(&ban_messages[0]).to_string()
+    }
+}
+
+/// Helper function to get the author of the last message in the current channel
+async fn get_last_author(ctx: &Context<'_>) -> Result<Member, Error> {
+    let channel = ctx.channel_id();
+    let guild_id = ctx.guild_id().ok_or("Not in a guild")?;
+
+    let messages = channel
+        .messages(ctx, GetMessages::new().limit(1))
+        .await?;
+
+    let message = messages.first()
+        .ok_or("Unable to get last message")?;
+
+    let member = guild_id
+        .member(ctx.http(), message.author.id)
+        .await?;
+
+    Ok(member)
+}
+
+/// Bans (but not actually) the person mentioned
+#[poise::command(prefix_command, slash_command, guild_only)]
+pub async fn ban(
+    ctx: Context<'_>,
+    user: Option<Mention>,
+) -> Result<(), Error> {
+    let mention = match user {
+        Some(user) => user,
+        None => get_last_author(&ctx).await?.mention(),
+    };
+
+    ctx.say(choose_ban_msg(mention)).await?;
+
     Ok(())
 }
