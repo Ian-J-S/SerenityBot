@@ -292,11 +292,12 @@ async fn get_last_author(ctx: &Context<'_>) -> Result<Member, Error> {
     let guild_id = ctx.guild_id().ok_or("Not in a guild")?;
 
     let messages = channel
-        .messages(ctx, GetMessages::new().limit(1))
+        .messages(ctx, GetMessages::new().limit(2))
         .await?;
 
-    let message = messages.first()
+    let message = messages.last()
         .ok_or("Unable to get last message")?;
+    println!("{}", message.content);
 
     let member = guild_id
         .member(ctx.http(), message.author.id)
