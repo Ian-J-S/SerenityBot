@@ -32,6 +32,7 @@ pub async fn shutdown(ctx: Context<'_>) -> Result<(), Error> {
 /// Vote for something
 ///
 /// Enter `!vote pumpkin` to vote for pumpkins
+// Taken from poise crate examples
 #[poise::command(prefix_command, slash_command)]
 pub async fn vote(
     ctx: Context<'_>,
@@ -57,6 +58,7 @@ pub async fn vote(
 /// !getvotes
 /// !getvotes pumpkin
 /// ```
+// Taken from poise crate examples
 #[poise::command(prefix_command, track_edits, aliases("votes"), slash_command)]
 pub async fn getvotes(
     ctx: Context<'_>,
@@ -86,6 +88,7 @@ pub async fn getvotes(
 }
 
 /// Echo content of a message
+// Taken from poise crate examples
 #[poise::command(prefix_command, context_menu_command = "Echo", slash_command)]
 pub async fn echo(
     ctx: Context<'_>,

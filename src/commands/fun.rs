@@ -50,6 +50,7 @@ pub async fn ferrisparty(ctx: Context<'_>) -> Result<(), Error> {
 }
 
 /// Boop the bot!
+// Taken from poise crate examples
 #[poise::command(prefix_command, track_edits, slash_command)]
 pub async fn boop(ctx: Context<'_>) -> Result<(), Error> {
     let uuid_boop = ctx.id();
