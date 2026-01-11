@@ -61,6 +61,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             commands::info::getvotes(),
             commands::info::help(),
             commands::info::joined(),
+            commands::info::prse(),
             commands::info::shutdown(),
             commands::info::uptime(),
             commands::info::vote(),

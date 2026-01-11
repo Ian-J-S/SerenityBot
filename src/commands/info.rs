@@ -153,3 +153,10 @@ pub async fn uptime(ctx: Context<'_>) -> Result<(), Error> {
     
     Ok(())
 }
+
+/// Because of course we need a prse command
+#[poise::command(prefix_command, slash_command)]
+pub async fn prse(ctx: Context<'_>) -> Result<(), Error> {
+    ctx.say("PReSEnting: https://github.com/Asterisk007/prse\n[This programming language is not endorsed by the University, nor this Discord server.]").await?;
+    Ok(())
+}
