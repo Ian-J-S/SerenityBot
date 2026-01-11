@@ -322,3 +322,12 @@ pub async fn ban(
 
     Ok(())
 }
+
+/// YEET
+#[poise::command(prefix_command, slash_command)]
+pub async fn yeet(
+    ctx: Context<'_>,
+) -> Result<(), Error> {
+    ctx.say(format!("{} YEET!\nhttps://youtu.be/mbDkgGv-vJ4?t=4", ctx.author().mention())).await?;
+    Ok(())
+}
