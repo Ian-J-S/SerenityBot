@@ -7,9 +7,7 @@ use poise::{serenity_prelude::{EditRole, Role, RoleId}};
 
 /// List server roles
 #[poise::command(prefix_command, slash_command, guild_only)]
-pub async fn list_roles(
-    ctx: Context<'_>,
-) -> Result<(), Error> {
+pub async fn list_roles(ctx: Context<'_>) -> Result<(), Error> {
     let guild_id = ctx.guild_id().ok_or("Unable to get guild ID")?;
     let roles = guild_id.roles(&ctx).await?;
 
@@ -51,7 +49,7 @@ fn get_role_id(target_role: &str, roles: &HashMap<RoleId, Role>) -> Option<RoleI
     None
 }
 
-/// Autocomplete function when typing roles for add / del
+/// Autocomplete function when typing roles for add / del (slash commands only)
 async fn autocomplete_role<'a>(
     ctx: Context<'_>,
     partial: &'a str,
@@ -65,7 +63,6 @@ async fn autocomplete_role<'a>(
                 Some(guild_id) => {
                     guild_id
                         .roles(&ctx).await.ok()
-                        // FIXME - avoid collecting values unnecessarily
                         .map(|m| m.into_values().collect::<Vec<Role>>())},
                 None => None
             } 

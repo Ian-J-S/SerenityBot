@@ -287,12 +287,12 @@ async fn get_last_author(ctx: &Context<'_>) -> Result<Member, Error> {
     let guild_id = ctx.guild_id().ok_or("Not in a guild")?;
 
     let messages = channel
+        // Limit to 2 (not 1) or else the ban command itself is counted
         .messages(ctx, GetMessages::new().limit(2))
         .await?;
 
     let message = messages.last()
         .ok_or("Unable to get last message")?;
-    println!("{}", message.content);
 
     let member = guild_id
         .member(ctx.http(), message.author.id)
@@ -305,6 +305,7 @@ async fn get_last_author(ctx: &Context<'_>) -> Result<Member, Error> {
 #[poise::command(prefix_command, slash_command, guild_only)]
 pub async fn ban(
     ctx: Context<'_>,
+    #[description = "@ user to 'ban'"]
     user: Option<Mention>,
 ) -> Result<(), Error> {
     let mention = match user {
@@ -319,9 +320,7 @@ pub async fn ban(
 
 /// YEET
 #[poise::command(prefix_command, slash_command)]
-pub async fn yeet(
-    ctx: Context<'_>,
-) -> Result<(), Error> {
+pub async fn yeet(ctx: Context<'_>) -> Result<(), Error> {
     ctx.say(format!("{} YEET!\nhttps://youtu.be/mbDkgGv-vJ4?t=4", ctx.author().mention())).await?;
     Ok(())
 }

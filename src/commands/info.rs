@@ -100,9 +100,7 @@ pub async fn echo(
 
 /// Tells you when you joined the server in UTC
 #[poise::command(prefix_command, slash_command, guild_only)]
-pub async fn joined(
-    ctx: Context<'_>,
-) -> Result<(), Error> {
+pub async fn joined(ctx: Context<'_>) -> Result<(), Error> {
     let author = ctx.author_member().await.expect("Unable to retrieve command author");
     let joined = author.joined_at.expect("Unable to retrieve join time");
     let guild_name = ctx.guild().expect("Unable to retrieve guild").name.clone();
