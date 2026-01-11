@@ -270,9 +270,8 @@ fn choose_ban_msg(user_mentioned: Mention) -> String {
     ];
 
     let mut rng = rand::rng();
-    let odds = rng.random_range(1..=1000);
 
-    if odds > 900 {
+    if rng.random_bool(0.1) {
         ban_easter_eggs.choose(&mut rng)
             .unwrap_or(&ban_easter_eggs[0]).to_string()
     } else {
@@ -287,7 +286,7 @@ async fn get_last_author(ctx: &Context<'_>) -> Result<Member, Error> {
     let guild_id = ctx.guild_id().ok_or("Not in a guild")?;
 
     let messages = channel
-        // Limit to 2 (not 1) or else the ban command itself is counted
+        // Limit to 2 (not 1) or else the ban command itself is chosen
         .messages(ctx, GetMessages::new().limit(2))
         .await?;
 
