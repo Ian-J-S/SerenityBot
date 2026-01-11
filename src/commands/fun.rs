@@ -20,17 +20,10 @@ pub async fn ping(ctx: Context<'_>) -> Result<(), Error> {
 pub async fn coinflip(
     ctx: Context<'_>,
 ) -> Result<(), Error> {
-    let flip = {
-        let mut rng = rand::rng();
-        rng.random()
-    };
-    let message = if flip {
-        "Heads"
-    } else {
-        "Tails"
-    };
+    let message = ["Heads", "Tails"].choose(&mut rand::rng())
+        .unwrap(); // Only returns 'none' if array is empty
 
-    ctx.say(message).await?;
+    ctx.say(*message).await?;
     Ok(())
 }
 
