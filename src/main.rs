@@ -1,3 +1,4 @@
+mod alerts;
 mod commands;
 
 use dotenvy::dotenv;
@@ -120,6 +121,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             Box::pin(async move {
                 println!("Logged in as {}", _ready.user.name);
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
+
+                let http = ctx.http.clone();
+                tokio::spawn(async move {
+                    let _ = alerts::alerts(http).await;
+                });
+
                 Ok(Data {
                     votes: Mutex::new(HashMap::new()),
                     start_time: Instant::now(),
