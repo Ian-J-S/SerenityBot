@@ -22,7 +22,8 @@ impl Display for Alert {
 }
 
 pub async fn alerts(http: Arc<Http>) -> Result<(), Error> {
-    let mut interval = tokio::time::interval(Duration::from_mins(15));
+    // I can't use from_mins(15) for some reason?
+    let mut interval = tokio::time::interval(Duration::from_secs(15 * 60));
     let channel_id = ChannelId::new(1460136483062284442);
 
     let mut alert_list = HashSet::new();
