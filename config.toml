@@ -1,5 +1,5 @@
+[alerts]
 alerts_channel = '1460136483062284442'
-
 alert_types = ['Met', 'Fire']
 
 [quiet_hours]

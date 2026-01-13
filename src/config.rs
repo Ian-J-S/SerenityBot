@@ -6,9 +6,14 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 pub struct Config {
+    pub alerts: AlertConfig,
+    pub quiet_hours: QuietHours,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AlertConfig {
     pub alerts_channel: Option<String>,
     pub alert_types: HashSet<String>,
-    pub quiet_hours: QuietHours,
 }
 
 #[derive(Debug, Deserialize)]
@@ -35,8 +40,7 @@ pub fn load_config() -> Result<Config, Box<dyn std::error::Error>> {
     let config: Config = toml::from_str(&config_str)?;
 
     #[cfg(debug_assertions)] {
-        println!("Alerts channel: {:?}", config.alerts_channel);
-        println!("Alert types: {:?}", config.alert_types);
+        println!("Alerts: {:?}", config.alerts);
         println!("Quiet hours: {:?}", config.quiet_hours);
     }
 
