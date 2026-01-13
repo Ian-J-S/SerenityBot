@@ -1,6 +1,12 @@
 [alerts]
-alerts_channel = '1460136483062284442'
-alert_types = ['Met', 'Fire']
+# Channel ID
+# Go to desired alerts channel and right click. Channel ID should be at the bottom
+alerts_channel = 1460136483062284442
+# Full list of alert types here:
+# https://vlab.noaa.gov/web/nws-common-alerting-protocol/cap-documentation#category
+alert_types = ["Met", "Fire"]
+# How often the bot checks for new alerts
+check_interval = 60 # seconds
 
 [quiet_hours]
 start = "22:00"

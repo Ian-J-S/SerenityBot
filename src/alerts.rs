@@ -1,4 +1,5 @@
-use crate::Error;
+use crate::{Error, config::Config};
+use chrono::Local;
 use poise::serenity_prelude::{ChannelId, Http};
 use reqwest::{Client, header::USER_AGENT};
 use serde_json::Value;
@@ -6,7 +7,6 @@ use std::{
     collections::HashSet,
     fmt::{self, Display},
     sync::Arc,
-    time::Duration,
 };
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
@@ -21,15 +21,22 @@ impl Display for Alert {
     }
 }
 
-pub async fn alerts(http: Arc<Http>) -> Result<(), Error> {
-    // I can't use from_mins(15) for some reason?
-    let mut interval = tokio::time::interval(Duration::from_secs(15 * 60));
-    let channel_id = ChannelId::new(1460136483062284442);
+/// Runs in the background of the bot if configured.
+/// Pulls weather alerts from the nws.gov API and sends
+/// them to the preconfigured channel.
+pub async fn alerts(http: Arc<Http>, cfg: Config) -> Result<(), Error> {
+    let mut interval = tokio::time::interval(cfg.alerts.check_interval);
+    let channel_id = ChannelId::new(cfg.alerts.alerts_channel);
 
+    // List of already seen alerts
     let mut alert_list = HashSet::new();
 
     loop {
         interval.tick().await;
+
+        if cfg.quiet_hours.is_quiet(Local::now().time()) {
+            continue;
+        }
 
         let client = Client::new();
         let response: Value = client
@@ -46,6 +53,11 @@ pub async fn alerts(http: Arc<Http>) -> Result<(), Error> {
                 
                 let category = props["category"].as_str()
                     .unwrap_or("No category").to_string();
+
+                // Skip categories not in configuration
+                if !cfg.alerts.alert_types.contains(&category) {
+                    continue;
+                }
 
                 let headline = props["headline"].as_str()
                     .unwrap_or("No headline").to_string();
