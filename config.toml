@@ -1,0 +1,7 @@
+alerts_channel = '1460136483062284442'
+
+alert_types = ['Met', 'Fire']
+
+[quiet_hours]
+start = "22:00"
+end = "07:00"
