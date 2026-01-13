@@ -25,7 +25,7 @@ use serde_with::{DurationSeconds, serde_as};
 #[derive(Debug, Deserialize)]
 pub struct Config {
     pub alerts: AlertConfig,
-    pub quiet_hours: QuietHours,
+    pub quiet_hours: Option<QuietHours>,
 }
 
 /// TOML key `[alerts]`

@@ -34,7 +34,8 @@ pub async fn alerts(http: Arc<Http>, cfg: Config) -> Result<(), Error> {
     loop {
         interval.tick().await;
 
-        if cfg.quiet_hours.is_quiet(Local::now().time()) {
+        if let Some(quiet_hours) = &cfg.quiet_hours
+            && quiet_hours.is_quiet(Local::now().time()) {
             continue;
         }
 
