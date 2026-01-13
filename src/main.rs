@@ -1,5 +1,7 @@
 mod alerts;
 mod commands;
+mod config;
+use config::{Config, load_config};
 
 use dotenvy::dotenv;
 use poise::serenity_prelude as serenity;
@@ -18,6 +20,7 @@ type Context<'a> = poise::Context<'a, Data, Error>;
 pub struct Data {
     votes: Mutex<HashMap<String, u32>>,
     start_time: Instant,
+    config: Option<Config>,
 }
 
 async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
@@ -127,9 +130,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let _ = alerts::alerts(http).await;
                 });
 
+                let config = match load_config() {
+                    Ok(config) => {
+                        println!("Loaded config");
+                        Some(config)
+                    } 
+                    Err(e) => {
+                        eprintln!("Unable to load config: {e}");
+                        None
+                    }
+                };
+
                 Ok(Data {
                     votes: Mutex::new(HashMap::new()),
                     start_time: Instant::now(),
+                    config,
                 })
             })
         })
