@@ -32,6 +32,9 @@ pub async fn alerts(http: Arc<Http>, cfg: Config) -> Result<(), Error> {
     // List of already seen alerts
     let mut alert_list = HashSet::new();
 
+    let areas = cfg.alerts.areas.join(",");
+    let client = Client::new();
+
     loop {
         interval.tick().await;
 
@@ -40,9 +43,6 @@ pub async fn alerts(http: Arc<Http>, cfg: Config) -> Result<(), Error> {
             continue;
         }
 
-        let areas = cfg.alerts.areas.join(",");
-
-        let client = Client::new();
         let response: Value = client
             .get(format!("https://api.weather.gov/alerts/active?zone={areas}"))
             .header(USER_AGENT, "rust-web-api-client")
