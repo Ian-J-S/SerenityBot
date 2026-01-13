@@ -4,9 +4,15 @@
 alerts_channel = 1460136483062284442
 # Full list of alert types here:
 # https://vlab.noaa.gov/web/nws-common-alerting-protocol/cap-documentation#category
-alert_types = ["Met", "Fire"]
+alert_types = ["Fire", "Geo", "Met"]
 # How often the bot checks for new alerts
 check_interval = 60 # seconds
+# List of areas to monitor. Accepts NWS county codes.
+# A full list of county codes can be found here under "WX Code":
+# https://www.aprs-is.net/WX/NWSCodes.aspx
+# The underscore must be removed. 
+# Example: Butte County, CA would be "CAC007"
+areas = ["CAC007", "CAC053", "CAC093"]
 
 [quiet_hours]
 start = "22:00"

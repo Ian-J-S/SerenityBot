@@ -13,11 +13,12 @@ use std::{
 struct Alert {
     category: String,
     headline: String,
+    description: String,
 }
 
 impl Display for Alert {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Category: {}\n{}", self.category, self.headline)
+        write!(f, "Category: {}\n{}\n{}", self.category, self.headline, self.description)
     }
 }
 
@@ -39,9 +40,11 @@ pub async fn alerts(http: Arc<Http>, cfg: Config) -> Result<(), Error> {
             continue;
         }
 
+        let areas = cfg.alerts.areas.join(",");
+
         let client = Client::new();
         let response: Value = client
-            .get("https://api.weather.gov/alerts/active?area=CA")
+            .get(format!("https://api.weather.gov/alerts/active?zone={areas}"))
             .header(USER_AGENT, "rust-web-api-client")
             .send()
             .await?
@@ -53,7 +56,7 @@ pub async fn alerts(http: Arc<Http>, cfg: Config) -> Result<(), Error> {
                 let props = &feature["properties"];
                 
                 let category = props["category"].as_str()
-                    .unwrap_or("No category").to_string();
+                    .unwrap_or("").to_string();
 
                 // Skip categories not in configuration
                 if !cfg.alerts.alert_types.contains(&category) {
@@ -61,13 +64,16 @@ pub async fn alerts(http: Arc<Http>, cfg: Config) -> Result<(), Error> {
                 }
 
                 let headline = props["headline"].as_str()
-                    .unwrap_or("No headline").to_string();
+                    .unwrap_or("").to_string();
 
-                if category == "No category" && headline == "No headline" {
+                let description = props["description"].as_str()
+                    .unwrap_or("").to_string();
+
+                if category.is_empty() && headline.is_empty() && description.is_empty() {
                     continue;
                 }
 
-                let new_alert = Alert { category, headline };
+                let new_alert = Alert { category, headline, description };
 
                 if alert_list.insert(new_alert.clone()) {
                     channel_id

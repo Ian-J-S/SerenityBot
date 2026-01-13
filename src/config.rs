@@ -39,6 +39,7 @@ pub struct AlertConfig {
 
     #[serde_as(as = "DurationSeconds<u64>")]
     pub check_interval: Duration,
+    pub areas: Vec<String>
 }
 
 /// TOML key `[quiet_hours]`
