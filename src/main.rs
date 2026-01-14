@@ -53,10 +53,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             commands::fun::coinflip(),
             commands::fun::ferrisparty(),
             commands::fun::mock(),
+            commands::fun::owo(),
             commands::fun::ping(),
             commands::fun::roll(),
             commands::fun::say(),
             commands::fun::trickortreat(),
+            commands::fun::uwu(),
             commands::fun::wiki(),
             commands::fun::yeet(),
 

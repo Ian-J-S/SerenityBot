@@ -345,3 +345,112 @@ pub async fn trickortreat(ctx: Context<'_>) -> Result<(), Error> {
 
     Ok(())
 }
+
+pub fn owofy(input: &str) -> String {
+    let uwu_suffixes = [
+        " (´・ω・｀)",
+        " (๑•́ ₃ •̀๑)",
+        " (• o •)",
+        " (⁎˃ᆺ˂)",
+        " (╯﹏╰）",
+        " (●´ω｀●)",
+        " (◠‿◠✿)",
+        " (✿ ♡‿♡)",
+        r" (❁´◡\`❁)",
+        r" (　\'◟ \')",
+        " (；ω；)",
+        r" (´･ω･\`)",
+        " o3o",
+        " :3",
+        " :D",
+        " :P",
+        r" ;\_;",
+        " <{^v^}>",
+        r" >\_<",
+        " UwU",
+        " ^-^",
+        " xD",
+        " ÙωÙ",
+        " ㅇㅅㅇ",
+        " （＾ｖ＾）",
+        r" \*starts howling\*",
+        r" \*leaps up and down\*",
+        r" \*wags tail\*",
+    ];
+
+    let uwu_substitutions = [
+        ("r", "w"),
+        ("l", "w"),
+        ("the ", "da "),
+        ("th", "d"),
+        ("hi", "hai"),
+        ("has", "haz"),
+        ("have", "haz"),
+        ("is", "iws"),
+
+        // some words have already been uwu-ized
+        ("fuck", "henck"),
+        ("bitch", "vewwy nice lady"),
+        ("shait", "poot"),
+        (" ass ", " fwuffey tail "),
+        ("kill", "nuzzle"),
+        ("god", "sonic"),
+        ("jesus christ", "cheese and wice"),
+        ("degenewates", "cutie pies"),
+        ("degenewate", "cutie pie"),
+        ("diwsgusting", "bulgy wulgy"),
+        ("gwossest", "bulgiest"),
+        ("gwoss", "AMAZEBALLS (✿ ♡‿♡)"),
+        ("nasty", "musky"),
+        ("hand", "paw"),
+
+        // compounding uwu-ness
+        ("uwu", "uwuwuwu"),
+        ("owo", "owowowo"),
+        ("you ", "uwu "),
+        ("dude", "duwude"),
+        ("to", "towo"),
+        ("no", "nowo"),
+        ("oh", "owo"),
+        ("do ", "dowo "),
+    ];
+
+    let mut output = String::from(input);
+    for (from, to) in uwu_substitutions {
+        output = output.replace(from, to);
+    }
+
+    let mut rng = rand::rng();
+    let mut final_out = String::with_capacity(output.len());
+
+    for ch in output.chars() {
+        if matches!(ch, '.' | '!' | '?') && rng.random_bool(0.2) {
+            let suffix = uwu_suffixes.choose(&mut rng).unwrap();
+            final_out.push_str(suffix);
+        } else {
+            final_out.push(ch);
+        }
+    }
+
+    final_out
+}
+
+#[poise::command(prefix_command, slash_command, context_menu_command = "owo")]
+pub async fn owo(
+    ctx:Context<'_>,
+    msg: serenity::Message,
+) -> Result<(), Error> {
+    let message = owofy(&msg.content);
+    ctx.say(message).await?;
+    Ok(())
+}
+
+#[poise::command(prefix_command, slash_command, context_menu_command = "uwu")]
+pub async fn uwu(
+    ctx:Context<'_>,
+    msg: serenity::Message,
+) -> Result<(), Error> {
+    let message = owofy(&msg.content);
+    ctx.say(message).await?;
+    Ok(())
+}
