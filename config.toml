@@ -12,7 +12,8 @@ check_interval = 60 # seconds
 # https://www.aprs-is.net/WX/NWSCodes.aspx
 # The underscore must be removed. 
 # Example: Butte County, CA would be "CAC007"
-areas = ["CAC007", "CAC053", "CAC093"]
+# Current: Butte, Nevada, Monterey, Siskiyou
+areas = ["CAC007", "CAC053", "CAC053", "CAC093"]
 
 [quiet_hours]
 start = "22:00"
