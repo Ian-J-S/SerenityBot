@@ -281,9 +281,8 @@ fn choose_ban_msg(user_mentioned: Mention) -> String {
 }
 
 /// Helper function to get the author of the last message in the current channel
-async fn get_last_author(ctx: &Context<'_>) -> Result<Member, Error> {
+async fn get_last_message(ctx: &Context<'_>) -> Result<serenity::Message, Error> {
     let channel = ctx.channel_id();
-    let guild_id = ctx.guild_id().ok_or("Not in a guild")?;
 
     let messages = channel
         // Limit to 2 (not 1) or else the ban command itself is chosen
@@ -293,11 +292,7 @@ async fn get_last_author(ctx: &Context<'_>) -> Result<Member, Error> {
     let message = messages.last()
         .ok_or("Unable to get last message")?;
 
-    let member = guild_id
-        .member(ctx.http(), message.author.id)
-        .await?;
-
-    Ok(member)
+    Ok(message.clone())
 }
 
 /// Bans (but not actually) the person mentioned
@@ -309,7 +304,10 @@ pub async fn ban(
 ) -> Result<(), Error> {
     let mention = match user {
         Some(user) => user,
-        None => get_last_author(&ctx).await?.mention(),
+        None => {
+            let msg = get_last_message(&ctx).await?;
+            msg.author.mention()
+        }
     };
 
     ctx.say(choose_ban_msg(mention)).await?;
@@ -435,17 +433,28 @@ pub fn owofy(input: &str) -> String {
     final_out
 }
 
-#[poise::command(prefix_command, slash_command, context_menu_command = "owo")]
+/// Convewts da specified stwing into OwO speak
+///
+/// If no argument is provided, use last message.
+#[poise::command(prefix_command, slash_command)]
 pub async fn owo(
     ctx:Context<'_>,
-    msg: serenity::Message,
+    msg: Option<serenity::Message>,
 ) -> Result<(), Error> {
+    // If no argument provided, get last message
+    let msg = match msg {
+        Some(msg) => msg,
+        None => get_last_message(&ctx).await?
+    };
     let message = owofy(&msg.content);
     ctx.say(message).await?;
     Ok(())
 }
 
-#[poise::command(prefix_command, slash_command, context_menu_command = "uwu")]
+/// Context menu version of owo command.
+// I decided to make this a context-menu command rather
+// than having 2 commands that do the same thing
+#[poise::command(context_menu_command = "uwu")]
 pub async fn uwu(
     ctx:Context<'_>,
     msg: serenity::Message,
