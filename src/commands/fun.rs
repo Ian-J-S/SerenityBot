@@ -1,6 +1,6 @@
 use crate::{Context, Error};
 use chrono::Datelike;
-use poise::serenity_prelude::{GetMessages, Member, Mention, ReactionType};
+use poise::serenity_prelude::{GetMessages, Mention, ReactionType};
 use poise::{serenity_prelude::{self as serenity, Mentionable}, CreateReply};
 use rand::{Rng, seq::IndexedRandom};
 use reqwest::{Client, header::USER_AGENT};
@@ -425,6 +425,7 @@ pub fn owofy(input: &str) -> String {
         if matches!(ch, '.' | '!' | '?') && rng.random_bool(0.2) {
             let suffix = uwu_suffixes.choose(&mut rng).unwrap();
             final_out.push_str(suffix);
+            final_out.push(' ');
         } else {
             final_out.push(ch);
         }
