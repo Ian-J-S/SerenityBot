@@ -89,11 +89,17 @@ pub async fn boop(ctx: Context<'_>) -> Result<(), Error> {
 }
 
 /// Mock a message
-#[poise::command(prefix_command, slash_command, context_menu_command = "Mock")]
+#[poise::command(prefix_command, slash_command)]
 pub async fn mock(
     ctx: Context<'_>,
-    #[description = "Message to mock"] msg: serenity::Message,
+    #[description = "Message to mock"] 
+    msg: Option<serenity::Message>,
 ) -> Result<(), Error> {
+    let msg = match msg {
+        Some(msg) => msg,
+        None => get_last_message(&ctx).await?,
+    };
+
     let response: String = {
         let mut rng = rand::rng();
         msg.content
