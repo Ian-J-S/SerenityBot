@@ -126,23 +126,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("Logged in as {}", _ready.user.name);
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
 
-                let config = match load_config() {
+                match load_config() {
+                    // Only spawn alerts task if the config was provided & parsed correctly
                     Ok(config) => {
                         println!("Loaded config");
-                        Some(config)
-                    } 
-                    Err(e) => {
-                        eprintln!("Unable to load config: {e}");
-                        None
-                    }
-                };
-
-                // Only spawn alerts task if the config was provided & parsed correctly
-                if let Some(config) = config {
-                    let http = ctx.http.clone();
-                    tokio::spawn(async move {
-                        let _ = alerts::alerts(http, config).await;
-                    });
+                        let http = ctx.http.clone();
+                        tokio::spawn(async move {
+                            let _ = alerts::alerts(http, config).await;
+                        });
+                    },
+                    Err(e) => eprintln!("Unable to load config {e}"),
                 }
 
                 Ok(Data {
