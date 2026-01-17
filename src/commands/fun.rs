@@ -516,10 +516,10 @@ async fn owo_helper(
     let db = ctx.data().db.lock().await;
     
     // Check immuwunity for both message author and command author
-    if db.immuwune.contains(&msg.author.name) {
-        ctx.say("UwU dis usew is immuwune, sowwy! 😭").await?;
-    } else if db.immuwune.contains(&ctx.author().name) {
+    if db.immuwune.contains(&ctx.author().name) {
         ctx.say("UwU you'we immuwune, sowwy! 😭").await?;
+    } else if db.immuwune.contains(&msg.author.name) {
+        ctx.say("UwU dis usew is immuwune, sowwy! 😭").await?;
     } else {
         let transformed = owofy(&msg.content);
         ctx.say(&transformed).await?;
