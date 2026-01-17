@@ -88,6 +88,20 @@ pub async fn boop(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
+fn mock_helper(msg: &str) -> String {
+    let mut rng = rand::rng();
+    msg.chars()
+        .map(|c| {
+            // 40% chance of capitalizing letter, idk it feels better than 50-50
+            if rng.random_bool(0.4) {
+                c.to_ascii_uppercase()
+            } else {
+                c.to_ascii_lowercase()
+            }
+        })
+        .collect()
+}
+
 /// Mock a message
 #[poise::command(prefix_command, slash_command)]
 pub async fn mock(
@@ -100,23 +114,22 @@ pub async fn mock(
         None => get_last_message(&ctx).await?,
     };
 
-    let response: String = {
-        let mut rng = rand::rng();
-        msg.content
-            .chars()
-            .map(|c| {
-                // 40% chance of capitalizing letter, idk it feels better than 50-50
-                if rng.random_bool(0.4) {
-                    c.to_ascii_uppercase()
-                } else {
-                    c.to_ascii_lowercase()
-                }
-            })
-            .collect()
-    };
+    let response = mock_helper(&msg.content);
 
-    ctx.say(&response).await?;
+    ctx.say(response).await?;
 
+    Ok(())
+}
+
+/// Context menu version of mock?
+#[poise::command(context_menu_command = "Mock")]
+pub async fn mock_ctx_menu(
+    ctx:Context<'_>,
+    #[description = "Message to mock"] 
+    msg: serenity::Message,
+) -> Result<(), Error> {
+    let response = mock_helper(&msg.content);
+    ctx.say(response).await?;
     Ok(())
 }
 
