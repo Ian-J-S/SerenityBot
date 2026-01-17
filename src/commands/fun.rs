@@ -485,3 +485,26 @@ pub async fn whoisjoe(ctx: Context<'_>) -> Result<(), Error> {
     ctx.say("JOE MAMA").await?;
     Ok(())
 }
+
+/// Adds you to the list of immuwunized individuals (or removes you if you're already on it)
+///
+/// Like a vaccine for the UwU.
+/// The difference here is that you can choose to deimmuwunize yourself.
+#[poise::command(prefix_command, slash_command)]
+pub async fn immuwune(ctx: Context<'_>) -> Result<(), Error> {
+    let author = ctx.author().name.clone();
+
+    let mut db = ctx.data().db.lock().await;
+    
+    let message = if db.immuwune.insert(author.clone()) {
+        "You have successfully been immuwunized OwO"
+    } else {
+        db.immuwune.remove(&author);
+        "You have successfully been deimmuwunized UwU"
+    };
+    
+    db.save(&ctx.data().db_path).await?;
+
+    ctx.reply(message).await?;
+    Ok(())
+}
