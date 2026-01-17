@@ -40,7 +40,7 @@ pub async fn vote(
 ) -> Result<(), Error> {
     // Lock the Mutex in a block {} so the Mutex isn't locked across an await point
     let num_votes = {
-        let mut hash_map = ctx.data().votes.lock().unwrap();
+        let mut hash_map = ctx.data().votes.lock().await;
         let num_votes = hash_map.entry(choice.clone()).or_default();
         *num_votes += 1;
         *num_votes
@@ -65,7 +65,7 @@ pub async fn getvotes(
     #[description = "Choice to retrieve votes for"] choice: Option<String>,
 ) -> Result<(), Error> {
     if let Some(choice) = choice {
-        let num_votes = *ctx.data().votes.lock().unwrap().get(&choice).unwrap_or(&0);
+        let num_votes = *ctx.data().votes.lock().await.get(&choice).unwrap_or(&0);
         let response = match num_votes {
             0 => format!("Nobody has voted for {} yet", choice),
             _ => format!("{} people have voted for {}", num_votes, choice),
@@ -73,7 +73,7 @@ pub async fn getvotes(
         ctx.say(response).await?;
     } else {
         let mut response = String::new();
-        for (choice, num_votes) in ctx.data().votes.lock().unwrap().iter() {
+        for (choice, num_votes) in ctx.data().votes.lock().await.iter() {
             response += &format!("{}: {} votes", choice, num_votes);
         }
 

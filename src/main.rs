@@ -1,16 +1,19 @@
 mod alerts;
 mod commands;
 mod config;
+mod db;
 use config::load_config;
+use db::Database;
 
 use dotenvy::dotenv;
 use poise::serenity_prelude as serenity;
 use std::{
     collections::HashMap,
     env::var,
-    sync::{Arc, Mutex},
+    sync::Arc,
     time::{Duration, Instant},
 };
+use tokio::sync::Mutex;
 
 // Types used by all command functions
 type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -20,6 +23,8 @@ type Context<'a> = poise::Context<'a, Data, Error>;
 pub struct Data {
     votes: Mutex<HashMap<String, u32>>,
     start_time: Instant,
+    db: Mutex<Database>,
+    db_path: String,
 }
 
 async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
@@ -52,6 +57,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             commands::fun::boop(),
             commands::fun::coinflip(),
             commands::fun::ferrisparty(),
+            commands::fun::immuwune(),
             commands::fun::mock(),
             commands::fun::owo(),
             commands::fun::ping(),
@@ -138,9 +144,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Err(e) => eprintln!("Unable to load config {e}"),
                 }
 
+                let db_path = String::from("db.json");
+                let db = Mutex::new(
+                    Database::load(&db_path).await?,
+                );
+
                 Ok(Data {
                     votes: Mutex::new(HashMap::new()),
                     start_time: Instant::now(),
+                    db,
+                    db_path,
                 })
             })
         })
