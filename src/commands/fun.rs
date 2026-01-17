@@ -358,7 +358,7 @@ pub async fn trickortreat(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
-pub fn owofy(input: &str) -> String {
+fn owofy(input: &str) -> String {
     let uwu_suffixes = [
         " (´・ω・｀)",
         " (๑•́ ₃ •̀๑)",
@@ -461,8 +461,8 @@ pub async fn owo(
         Some(msg) => msg,
         None => get_last_message(&ctx).await?
     };
-    let message = owofy(&msg.content);
-    ctx.say(message).await?;
+
+    owo_helper(ctx, &msg).await?;
     Ok(())
 }
 
@@ -474,8 +474,7 @@ pub async fn uwu(
     ctx:Context<'_>,
     msg: serenity::Message,
 ) -> Result<(), Error> {
-    let message = owofy(&msg.content);
-    ctx.say(message).await?;
+    owo_helper(ctx, &msg).await?;
     Ok(())
 }
 
@@ -506,5 +505,25 @@ pub async fn immuwune(ctx: Context<'_>) -> Result<(), Error> {
     db.save(&ctx.data().db_path).await?;
 
     ctx.reply(message).await?;
+    Ok(())
+}
+
+/// Helper function for owo/uwu with immuwunity check
+async fn owo_helper(
+    ctx: Context<'_>,
+    msg: &serenity::Message,
+) -> Result<(), Error> {
+    let db = ctx.data().db.lock().await;
+    
+    // Check immuwunity for both message author and command author
+    if db.immuwune.contains(&msg.author.name) {
+        ctx.say("UwU dis usew is immuwune, sowwy! 😭").await?;
+    } else if db.immuwune.contains(&ctx.author().name) {
+        ctx.say("UwU you'we immuwune, sowwy! 😭").await?;
+    } else {
+        let transformed = owofy(&msg.content);
+        ctx.say(&transformed).await?;
+    }
+    
     Ok(())
 }
