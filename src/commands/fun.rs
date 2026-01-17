@@ -161,15 +161,15 @@ pub async fn roll(
     }
 
     // Parse specified dice value or go with d6 if failure / unspecified
-    let dvalue: u32 = if let Some(dtype) = sides.clone() && dtype.starts_with('d') {
-        dtype.split_once('d')
-            .map(|pair| pair.1)
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(6)
-    } else {
-        sides
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(6)
+    let dvalue: u32 = match sides.clone() {
+        Some(dtype) if dtype.starts_with('d') => {
+            dtype.split_once('d')
+                .map(|(_, n)| n)
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(6)
+        }
+        Some(s) => s.parse().ok().unwrap_or(6),
+        None => 6,
     };
 
     // Maybe I should change this to make it easier to read, I just like list folding
