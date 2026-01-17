@@ -35,6 +35,8 @@ pub async fn alerts(http: Arc<Http>, cfg: Config) -> Result<(), Error> {
     let areas = cfg.alerts.areas.join(",");
     let client = Client::new();
 
+    println!("Listening for NWS alerts");
+
     loop {
         interval.tick().await;
 
