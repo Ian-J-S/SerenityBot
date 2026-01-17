@@ -478,3 +478,10 @@ pub async fn uwu(
     ctx.say(message).await?;
     Ok(())
 }
+
+/// Joe mama meme lololol
+#[poise::command(prefix_command, slash_command)]
+pub async fn whoisjoe(ctx: Context<'_>) -> Result<(), Error> {
+    ctx.say("JOE MAMA").await?;
+    Ok(())
+}
