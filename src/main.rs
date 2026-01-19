@@ -87,6 +87,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             commands::roles::del(),
             commands::roles::list_roles(),
             commands::roles::my_roles(),
+            commands::roles::private(),
         ],
         prefix_options: poise::PrefixFrameworkOptions {
             prefix: Some("!".into()),

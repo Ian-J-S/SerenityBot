@@ -158,3 +158,20 @@ pub async fn prse(ctx: Context<'_>) -> Result<(), Error> {
     ctx.say("PReSEnting: https://github.com/Asterisk007/prse\n[This programming language is not endorsed by the University, nor this Discord server.]").await?;
     Ok(())
 }
+
+#[poise::command(prefix_command, slash_command, context_menu_command = "List mentions")]
+pub async fn list_mentions(
+    ctx: Context<'_>,
+    msg: serenity::Message,
+) -> Result<(), Error> {
+    let mentions = msg.mentions;
+    let response = mentions
+        .iter()
+        .fold(String::from("Mentions:\n"),
+            |acc, cur| {
+                format!("{acc}, {}", cur.name)
+        });
+
+    ctx.say(response).await?;
+    Ok(())
+}
