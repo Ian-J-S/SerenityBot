@@ -1,4 +1,4 @@
-use crate::{Context, Error};
+use crate::{Context, Error, utils::get_last_message};
 use poise::serenity_prelude::{self as serenity, Mentionable};
 use std::process::Command;
 
@@ -156,5 +156,30 @@ pub async fn uptime(ctx: Context<'_>) -> Result<(), Error> {
 #[poise::command(prefix_command, slash_command)]
 pub async fn prse(ctx: Context<'_>) -> Result<(), Error> {
     ctx.say("PReSEnting: https://github.com/Asterisk007/prse\n[This programming language is not endorsed by the University, nor this Discord server.]").await?;
+    Ok(())
+}
+
+/// Removes a message that the bot had sent
+#[poise::command(prefix_command, slash_command,
+required_permissions = "MANAGE_MESSAGES | MANAGE_THREADS")]
+pub async fn private(
+    ctx: Context<'_>,
+    #[description = "Message to delete (gets last message if not provided)"]
+    msg: Option<serenity::Message>,
+) -> Result<(), Error> {
+    let res = match msg {
+        Some(msg) => {
+            msg.delete(&ctx).await
+        }
+        None => {
+            let msg = get_last_message(&ctx).await?;
+            msg.delete(&ctx).await
+        }
+    };
+
+    if let Err(e) = res {
+        ctx.say(format!("Unable to delete command: {e}")).await?;
+    }
+
     Ok(())
 }
