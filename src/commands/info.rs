@@ -125,7 +125,7 @@ fn get_server_uptime() -> Result<String, Error> {
 }
 
 /// Gives uptime of bot and server running the bot.
-#[poise::command(prefix_command, slash_command, guild_only)]
+#[poise::command(prefix_command, slash_command)]
 pub async fn uptime(ctx: Context<'_>) -> Result<(), Error> {
     // Bot
     let duration = ctx.data().start_time.elapsed();
