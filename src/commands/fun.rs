@@ -1,6 +1,6 @@
-use crate::{Context, Error};
+use crate::{Context, Error, utils::get_last_message};
 use chrono::Datelike;
-use poise::serenity_prelude::{GetMessages, Mention, ReactionType};
+use poise::serenity_prelude::{Mention, ReactionType};
 use poise::{serenity_prelude::{self as serenity, Mentionable}, CreateReply};
 use rand::{Rng, seq::IndexedRandom};
 use reqwest::{Client, header::USER_AGENT};
@@ -297,29 +297,6 @@ fn choose_ban_msg(user_mentioned: Mention) -> String {
         ban_messages.choose(&mut rng)
             .unwrap_or(&ban_messages[0]).to_string()
     }
-}
-
-/// Helper function to get the author of the last message in the current channel
-async fn get_last_message(ctx: &Context<'_>) -> Result<serenity::Message, Error> {
-    let channel = ctx.channel_id();
-
-    // If prefix command is used, it counts as the last message, so we need 2 messages.
-    // Otherwise, just 1 message is needed.
-    let limit = if let poise::Context::Prefix(_) = ctx {
-        2
-    } else {
-        1
-    };
-
-    let messages = channel
-        // Limit to 2 (not 1) or else the ban command itself is chosen
-        .messages(ctx, GetMessages::new().limit(limit))
-        .await?;
-
-    let message = messages.last()
-        .ok_or("Unable to get last message")?;
-
-    Ok(message.clone())
 }
 
 /// Bans (but not actually) the person mentioned

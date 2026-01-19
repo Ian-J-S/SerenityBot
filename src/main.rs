@@ -2,6 +2,7 @@ mod alerts;
 mod commands;
 mod config;
 mod db;
+mod utils;
 use config::load_config;
 use db::Database;
 
