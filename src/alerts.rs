@@ -9,6 +9,7 @@ use std::{
     sync::Arc,
 };
 use tokio::sync::watch::Receiver;
+use tracing::info;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct Alert {
@@ -39,7 +40,7 @@ pub async fn alerts(http: Arc<Http>, cfg: Config, mut rx: Receiver<Config>)
     let mut alert_types = cfg.alerts.alert_types.clone();
     let mut quiet_hours = cfg.quiet_hours.clone();
     
-    println!("Listening for NWS alerts");
+    info!("Listening for NWS alerts");
 
     loop {
         tokio::select! {
@@ -88,8 +89,9 @@ pub async fn alerts(http: Arc<Http>, cfg: Config, mut rx: Receiver<Config>)
             }
             // Reload config when signalled
             _ = rx.changed() => {
-                println!("Config updated, applying new settings");
+                info!("Config updated, applying new settings");
                 let cfg = rx.borrow_and_update();
+                #[cfg(debug_assertions)]
                 println!("New config: {:?}", *cfg);
                 
                 // Update config values

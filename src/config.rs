@@ -19,6 +19,7 @@ use hotwatch::{Event, EventKind, Hotwatch};
 use serde::Deserialize;
 use serde_with::{DurationSeconds, serde_as};
 use tokio::sync::watch::Sender;
+use tracing::warn;
 
 /// Main bot configuration struct.
 ///
@@ -93,10 +94,11 @@ pub async fn watch_config(tx: Sender<Config>)
                 println!("Hotwatch registered change in {:?}", event.paths[0]);
 
                 // Reload config file and send it over the channel
-                if let Ok(new_cfg) = load_config() {
-                    txc.send(new_cfg).expect("Unable to send new config over channel");
-                } else {
-                    eprintln!("unable to load changed config");
+                match load_config() {
+                    Ok(new_cfg) => {
+                        txc.send(new_cfg).expect("Unable to send new config over channel");
+                    }
+                    Err(e) => warn!("Invalid config.toml, keeping old config {e}")
                 }
             }
         })?;

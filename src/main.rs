@@ -14,6 +14,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::sync::Mutex;
+use tracing::{error, info, warn};
 
 // Types used by all command functions
 type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -34,11 +35,11 @@ async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
     match error {
         poise::FrameworkError::Setup { error, .. } => panic!("Failed to start bot: {:?}", error),
         poise::FrameworkError::Command { error, ctx, .. } => {
-            println!("Error in command `{}`: {:?}", ctx.command().name, error,);
+            error!("Error in command `{}`: {:?}", ctx.command().name, error,);
         }
         error => {
             if let Err(e) = poise::builtins::on_error(error).await {
-                println!("Error while handling error: {}", e)
+                error!("Error while handling error: {}", e)
             }
         }
     }
@@ -130,13 +131,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let framework = poise::Framework::builder()
         .setup(move |ctx, _ready, framework| {
             Box::pin(async move {
-                println!("Logged in as {}", _ready.user.name);
+                info!("Logged in as {}", _ready.user.name);
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
 
                 match load_config() {
                     // Only spawn alerts task if the config was provided & parsed correctly
                     Ok(config) => {
-                        println!("Loaded config");
+                        info!("Loaded config.toml");
                         let http = ctx.http.clone();
                         let (tx, rx) = tokio::sync::watch::channel(config.clone());
                         tokio::spawn(async move {
@@ -146,7 +147,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                             let _ = config::watch_config(tx).await;
                         });
                     },
-                    Err(e) => eprintln!("Unable to load config {e}"),
+                    Err(e) => warn!("Running without NWS alerts due to toml error: {e}"),
                 }
 
                 let db_path = String::from("db.json");

@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use std::path::Path;
 use tokio::fs;
 use tokio::io::AsyncWriteExt;
+use tracing::{info, warn};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Database {
@@ -13,10 +14,10 @@ impl Database {
     pub async fn load(path: &str) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         if Path::new(path).exists() {
             let contents = fs::read_to_string(path).await?;
-            println!("Successfully loaded db file");
+            info!("Successfully loaded db file");
             Ok(serde_json::from_str(&contents)?)
         } else {
-            println!("No db file found, created new db");
+            warn!("No db file found, created new db");
             Ok(Self::default())
         }
     }
