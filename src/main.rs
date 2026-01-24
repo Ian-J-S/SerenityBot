@@ -138,8 +138,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Ok(config) => {
                         println!("Loaded config");
                         let http = ctx.http.clone();
+                        let (tx, rx) = tokio::sync::watch::channel(config.clone());
                         tokio::spawn(async move {
-                            let _ = alerts::alerts(http, config).await;
+                            let _ = alerts::alerts(http, config, rx).await;
+                        });
+                        tokio::spawn(async move {
+                            let _ = config::watch_config(tx).await;
                         });
                     },
                     Err(e) => eprintln!("Unable to load config {e}"),

@@ -15,14 +15,16 @@ use std::{
 };
 
 use chrono::NaiveTime;
+use hotwatch::{Event, EventKind, Hotwatch};
 use serde::Deserialize;
 use serde_with::{DurationSeconds, serde_as};
+use tokio::sync::watch::Sender;
 
 /// Main bot configuration struct.
 ///
 /// `config.toml` keys follow the variable names
 /// in the struct.
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Config {
     pub alerts: AlertConfig,
     pub quiet_hours: Option<QuietHours>,
@@ -32,7 +34,7 @@ pub struct Config {
 /// Used to configure that alerts are sent to, the types of NWS alerts displayed, 
 /// and how often to check for new alerts.
 #[serde_as]
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct AlertConfig {
     pub alerts_channel: u64,
     pub alert_types: HashSet<String>,
@@ -44,7 +46,7 @@ pub struct AlertConfig {
 
 /// TOML key `[quiet_hours]`
 /// Schedule times that the bot does not send any alerts.
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct QuietHours {
     start: NaiveTime,
     end: NaiveTime,
@@ -75,4 +77,28 @@ pub fn load_config() -> Result<Config, Box<dyn std::error::Error>> {
     }
 
     Ok(config)
+}
+
+/// Runs in the background watching for config file changes.
+pub async fn watch_config(tx: Sender<Config>) 
+-> Result<(), Box<dyn std::error::Error>> {
+    let mut hotwatch = Hotwatch::new()?;
+    let mut interval = tokio::time::interval(Duration::from_secs(2)); // Default hotwatch interval
+    loop {
+        interval.tick().await;
+        let txc = tx.clone();
+        hotwatch.watch("config.toml", move |event: Event| {
+            if let EventKind::Modify(_) = event.kind {
+                #[cfg(debug_assertions)]
+                println!("Hotwatch registered change in {:?}", event.paths[0]);
+
+                // Reload config file and send it over the channel
+                if let Ok(new_cfg) = load_config() {
+                    txc.send(new_cfg).expect("Unable to send new config over channel");
+                } else {
+                    eprintln!("unable to load changed config");
+                }
+            }
+        })?;
+    }
 }

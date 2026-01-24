@@ -8,6 +8,7 @@ use std::{
     fmt::{self, Display},
     sync::Arc,
 };
+use tokio::sync::watch::Receiver;
 
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct Alert {
@@ -25,63 +26,78 @@ impl Display for Alert {
 /// Runs in the background of the bot if configured.
 /// Pulls weather alerts from the nws.gov API and sends
 /// them to the preconfigured channel.
-pub async fn alerts(http: Arc<Http>, cfg: Config) -> Result<(), Error> {
-    let mut interval = tokio::time::interval(cfg.alerts.check_interval);
-    let channel_id = ChannelId::new(cfg.alerts.alerts_channel);
-
+pub async fn alerts(http: Arc<Http>, cfg: Config, mut rx: Receiver<Config>)
+-> Result<(), Error> {
     // List of already seen alerts
     let mut alert_list = HashSet::new();
 
-    let areas = cfg.alerts.areas.join(",");
     let client = Client::new();
 
+    let mut interval = tokio::time::interval(cfg.alerts.check_interval);
+    let mut channel_id = ChannelId::new(cfg.alerts.alerts_channel);
+    let mut areas = cfg.alerts.areas.join(",");
+    let mut alert_types = cfg.alerts.alert_types.clone();
+    let mut quiet_hours = cfg.quiet_hours.clone();
+    
     println!("Listening for NWS alerts");
 
     loop {
-        interval.tick().await;
-
-        if let Some(quiet_hours) = &cfg.quiet_hours
-            && quiet_hours.is_quiet(Local::now().time()) {
-            continue;
-        }
-
-        let response: Value = client
-            .get(format!("https://api.weather.gov/alerts/active?zone={areas}"))
-            .header(USER_AGENT, "rust-web-api-client")
-            .send()
-            .await?
-            .json()
-            .await?;
-
-        if let Some(features) = response.get("features").and_then(Value::as_array) {
-            for feature in features.iter() {
-                let props = &feature["properties"];
+        tokio::select! {
+            _ = interval.tick() => {
+                if let Some(quiet_hours) = &quiet_hours
+                    && quiet_hours.is_quiet(Local::now().time()) {
+                    continue;
+                }
                 
-                let category = props["category"].as_str()
-                    .unwrap_or("").to_string();
-
-                // Skip categories not in configuration
-                if !cfg.alerts.alert_types.contains(&category) {
-                    continue;
+                let response: Value = client
+                    .get(format!("https://api.weather.gov/alerts/active?zone={areas}"))
+                    .header(USER_AGENT, "rust-web-api-client")
+                    .send()
+                    .await?
+                    .json()
+                    .await?;
+                    
+                if let Some(features) = response.get("features").and_then(Value::as_array) {
+                    for feature in features.iter() {
+                        let props = &feature["properties"];
+                        
+                        let category = props["category"].as_str()
+                            .unwrap_or("").to_string();
+                        // Skip categories not in configuration
+                        if !alert_types.contains(&category) {
+                            continue;
+                        }
+                        
+                        let headline = props["headline"].as_str()
+                            .unwrap_or("").to_string();
+                        let description = props["description"].as_str()
+                            .unwrap_or("").to_string();
+                            
+                        if category.is_empty() && headline.is_empty() && description.is_empty() {
+                            continue;
+                        }
+                        
+                        let new_alert = Alert { category, headline, description };
+                        if alert_list.insert(new_alert.clone()) {
+                            channel_id
+                                .say(&*http, format!("**New alert**:\n{new_alert}"))
+                                .await?;
+                        }
+                    }
                 }
-
-                let headline = props["headline"].as_str()
-                    .unwrap_or("").to_string();
-
-                let description = props["description"].as_str()
-                    .unwrap_or("").to_string();
-
-                if category.is_empty() && headline.is_empty() && description.is_empty() {
-                    continue;
-                }
-
-                let new_alert = Alert { category, headline, description };
-
-                if alert_list.insert(new_alert.clone()) {
-                    channel_id
-                        .say(&*http, format!("**New alert**:\n{new_alert}"))
-                        .await?;
-                }
+            }
+            // Reload config when signalled
+            _ = rx.changed() => {
+                println!("Config updated, applying new settings");
+                let cfg = rx.borrow_and_update();
+                println!("New config: {:?}", *cfg);
+                
+                // Update config values
+                interval = tokio::time::interval(cfg.alerts.check_interval);
+                channel_id = ChannelId::new(cfg.alerts.alerts_channel);
+                areas = cfg.alerts.areas.join(",");
+                alert_types = cfg.alerts.alert_types.clone();
+                quiet_hours = cfg.quiet_hours.clone();
             }
         }
     }
