@@ -12,7 +12,6 @@ inherits = "release"
 [dependencies]
 chrono = "0.4.42"
 dotenvy = "0.15.7"
-hotwatch = "0.5.0"
 levenshtein = "1.0.5"
 notify = "8.2.0"
 poise = "0.6.1"
