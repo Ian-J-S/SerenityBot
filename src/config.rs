@@ -11,15 +11,16 @@
 use std::{
     collections::HashSet,
     fs,
+    path::Path,
     time::Duration,
 };
 
 use chrono::NaiveTime;
-use hotwatch::{Event, EventKind, Hotwatch};
+use notify::{Watcher, RecursiveMode, RecommendedWatcher};
 use serde::Deserialize;
 use serde_with::{DurationSeconds, serde_as};
 use tokio::sync::watch::Sender;
-use tracing::warn;
+use tracing::{info, warn};
 
 /// Main bot configuration struct.
 ///
@@ -83,24 +84,43 @@ pub fn load_config() -> Result<Config, Box<dyn std::error::Error>> {
 /// Runs in the background watching for config file changes.
 pub async fn watch_config(tx: Sender<Config>) 
 -> Result<(), Box<dyn std::error::Error>> {
-    let mut hotwatch = Hotwatch::new()?;
-    let mut interval = tokio::time::interval(Duration::from_secs(2)); // Default hotwatch interval
-    loop {
-        interval.tick().await;
-        let txc = tx.clone();
-        hotwatch.watch("config.toml", move |event: Event| {
-            if let EventKind::Modify(_) = event.kind {
-                #[cfg(debug_assertions)]
-                println!("Hotwatch registered change in {:?}", event.paths[0]);
+    let (notify_tx, mut notify_rx) = tokio::sync::mpsc::unbounded_channel();
 
-                // Reload config file and send it over the channel
-                match load_config() {
-                    Ok(new_cfg) => {
-                        txc.send(new_cfg).expect("Unable to send new config over channel");
+    let mut watcher = RecommendedWatcher::new(
+        move |res| {
+            if let Ok(event) = res {
+                let _ = notify_tx.send(event);
+            }
+        },
+        notify::Config::default(),
+    )?;
+    
+    watcher.watch(Path::new("."), RecursiveMode::NonRecursive)?;
+    info!("Watching config.toml for changes");
+    
+    loop {
+        tokio::select! {
+            Some(event) = notify_rx.recv() => {
+                if event.paths.iter().any(|p| p.ends_with("config.toml")) 
+                    && event.kind.is_modify() {
+                    #[cfg(debug_assertions)]
+                    println!("Config file changed: {:?}", event);
+                    
+                    match load_config() {
+                        Ok(new_cfg) => {
+                            if let Err(e) = tx.send(new_cfg) {
+                                warn!("Unable to send new config: {}", e);
+                            } else {
+                                info!("Config reloaded successfully");
+                            }
+                        }
+                        Err(e) => warn!("Invalid config.toml, keeping old config: {}", e)
                     }
-                    Err(e) => warn!("Invalid config.toml, keeping old config {e}")
                 }
             }
-        })?;
+        }
+
+        // Try to debounce a bit?
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
     }
 }
