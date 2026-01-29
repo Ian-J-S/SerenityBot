@@ -1,12 +1,12 @@
 use crate::{Error, config::Config};
-use chrono::Local;
+use chrono::{DateTime, Local, NaiveDateTime};
 use poise::serenity_prelude::{ChannelId, Http};
 use reqwest::{Client, header::USER_AGENT};
 use serde_json::Value;
 use std::{
     collections::HashSet,
     fmt::{self, Display},
-    sync::Arc,
+    sync::Arc, time::Duration,
 };
 use tokio::sync::watch::Receiver;
 use tracing::info;
@@ -16,12 +16,21 @@ struct Alert {
     category: String,
     headline: String,
     description: String,
+    end_time: NaiveDateTime,
 }
 
 impl Display for Alert {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Category: {}\n{}\n{}", self.category, self.headline, self.description)
     }
+}
+
+/// Removes NWS alerts that are past their specified end time.
+fn clear_ended_alerts(alert_list: &mut HashSet<Alert>) {
+    alert_list.retain(|a| {
+        let now = Local::now().naive_local();
+        a.end_time > now
+    });
 }
 
 /// Runs in the background of the bot if configured.
@@ -39,6 +48,9 @@ pub async fn alerts(http: Arc<Http>, cfg: Config, mut rx: Receiver<Config>)
     let mut areas = cfg.alerts.areas.join(",");
     let mut alert_types = cfg.alerts.alert_types.clone();
     let mut quiet_hours = cfg.quiet_hours.clone();
+
+    // Check for ended alerts every 24 hours
+    let mut cleanup_interval = tokio::time::interval(Duration::from_hours(24));
     
     info!("Listening for NWS alerts");
 
@@ -77,8 +89,12 @@ pub async fn alerts(http: Arc<Http>, cfg: Config, mut rx: Receiver<Config>)
                         if category.is_empty() && headline.is_empty() && description.is_empty() {
                             continue;
                         }
+
+                        let end_str = props["ends"].as_str().unwrap();
+                        let end_time: NaiveDateTime = DateTime::parse_from_rfc3339(end_str)?
+                            .naive_local();
                         
-                        let new_alert = Alert { category, headline, description };
+                        let new_alert = Alert { category, headline, description, end_time };
                         if alert_list.insert(new_alert.clone()) {
                             channel_id
                                 .say(&*http, format!("**New alert**:\n{new_alert}"))
@@ -86,6 +102,12 @@ pub async fn alerts(http: Arc<Http>, cfg: Config, mut rx: Receiver<Config>)
                         }
                     }
                 }
+            }
+            _ = cleanup_interval.tick() => {
+                // TODO - remove stupid debug printouts
+                println!("Number of alerts before clear: {}", alert_list.len());
+                clear_ended_alerts(&mut alert_list);
+                println!("Number of alerts after clear: {}", alert_list.len());
             }
             // Reload config when signalled
             _ = rx.changed() => {
