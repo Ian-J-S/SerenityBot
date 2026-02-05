@@ -49,8 +49,8 @@ pub async fn alerts(http: Arc<Http>, cfg: Config, mut rx: Receiver<Config>)
     let mut alert_types = cfg.alerts.alert_types.clone();
     let mut quiet_hours = cfg.quiet_hours.clone();
 
-    // Check for ended alerts every 24 hours
-    let mut cleanup_interval = tokio::time::interval(Duration::from_hours(24));
+    // Check for ended alerts every 1 hour
+    let mut cleanup_interval = tokio::time::interval(Duration::from_hours(1));
     
     info!("Listening for NWS alerts");
 
@@ -127,10 +127,9 @@ pub async fn alerts(http: Arc<Http>, cfg: Config, mut rx: Receiver<Config>)
                 }
             }
             _ = cleanup_interval.tick() => {
-                // TODO - remove stupid debug printouts
-                println!("Number of alerts before clear: {}", alert_list.len());
+                let old_len = alert_list.len();
                 clear_ended_alerts(&mut alert_list);
-                println!("Number of alerts after clear: {}", alert_list.len());
+                info!("Cleared {} stale alerts", old_len - alert_list.len());
             }
             // Reload config when signalled
             _ = rx.changed() => {
