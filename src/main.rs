@@ -55,6 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let options = poise::FrameworkOptions {
         commands: vec![
             commands::fun::ban(),
+            commands::fun::catfact(),
             commands::fun::boop(),
             commands::fun::coinflip(),
             commands::fun::ferrisparty(),

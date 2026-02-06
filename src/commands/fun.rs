@@ -540,3 +540,33 @@ async fn owo_helper(
     
     Ok(())
 }
+
+/// Subscribes to CatFacts!, Returns a random catfact.
+/// Some of these are questionable
+#[poise::command(prefix_command, slash_command)]
+pub async fn catfact(ctx: Context<'_>) -> Result<(), Error> {
+    let client = Client::new();
+    let catfacts_url = String::from(
+        "https://raw.githubusercontent.com/vadimdemedes/cat-facts/master/cat-facts.json",
+    );
+
+    let response: Value = client
+        .get(catfacts_url)
+        .header(USER_AGENT, "rust-web-api-client")
+        .send()
+        .await?
+        .json()
+        .await?;
+
+    let message = response
+        .as_array()
+        .and_then(|a| {
+            a.choose(&mut rand::rng())
+                .and_then(|v| v.as_str())
+        })
+        .unwrap_or("I'm sorry, I couldn't fetch any catfacts!");
+
+    ctx.say(message).await?;
+    
+    Ok(())
+}
