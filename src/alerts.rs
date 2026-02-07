@@ -49,8 +49,8 @@ pub async fn alerts(http: Arc<Http>, cfg: Config, mut rx: Receiver<Config>)
     let mut alert_types = cfg.alerts.alert_types.clone();
     let mut quiet_hours = cfg.quiet_hours.clone();
 
-    // Check for ended alerts every 1 hour
-    let mut cleanup_interval = tokio::time::interval(Duration::from_hours(1));
+    // Check for ended alerts every 24 hours
+    let mut cleanup_interval = tokio::time::interval(Duration::from_hours(24));
     
     info!("Listening for NWS alerts");
 
