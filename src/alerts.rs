@@ -43,7 +43,7 @@ pub async fn alerts(http: Arc<Http>, cfg: Config, mut rx: Receiver<Config>)
 
     let client = Client::new();
 
-    let mut interval = tokio::time::interval(cfg.alerts.check_interval);
+    let mut check_interval = tokio::time::interval(cfg.alerts.check_interval);
     let mut channel_id = ChannelId::new(cfg.alerts.alerts_channel);
     let mut areas = cfg.alerts.areas.join(",");
     let mut alert_types = cfg.alerts.alert_types.clone();
@@ -56,7 +56,7 @@ pub async fn alerts(http: Arc<Http>, cfg: Config, mut rx: Receiver<Config>)
 
     loop {
         tokio::select! {
-            _ = interval.tick() => {
+            _ = check_interval.tick() => {
                 if let Some(quiet_hours) = &quiet_hours
                     && quiet_hours.is_quiet(Local::now().time()) {
                     continue;
@@ -139,7 +139,7 @@ pub async fn alerts(http: Arc<Http>, cfg: Config, mut rx: Receiver<Config>)
                 println!("New config: {:?}", *cfg);
                 
                 // Update config values
-                interval = tokio::time::interval(cfg.alerts.check_interval);
+                check_interval = tokio::time::interval(cfg.alerts.check_interval);
                 channel_id = ChannelId::new(cfg.alerts.alerts_channel);
                 areas = cfg.alerts.areas.join(",");
                 alert_types = cfg.alerts.alert_types.clone();
