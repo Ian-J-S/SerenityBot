@@ -105,6 +105,9 @@ pub async fn watch_config(tx: Sender<Config>)
                     && event.kind.is_modify() {
                     #[cfg(debug_assertions)]
                     println!("Config file changed: {:?}", event);
+
+                    // Try to debounce config changes a little? fuck
+                    tokio::time::sleep(Duration::from_secs(1)).await;
                     
                     match load_config() {
                         Ok(new_cfg) => {
