@@ -11,6 +11,8 @@ use std::{
 use tokio::sync::watch::Receiver;
 use tracing::{info, error};
 
+const MAX_MSG_LEN: usize = 2000;
+
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct Alert {
     category: String,
@@ -31,6 +33,28 @@ fn clear_ended_alerts(alert_list: &mut HashSet<Alert>) {
         let now = Local::now().naive_local();
         a.end_time > now
     });
+}
+
+/// Send an alert if the total length is less than 2000 chars.
+/// Split into multiple messages otherwise.
+async fn send_alert(alert: Alert, channel_id: ChannelId, http: &Arc<Http>) -> Result<(), Error> {
+    let message = format!("**New alert:**\n{alert}");
+    if message.len() < MAX_MSG_LEN {
+        channel_id.say(http, message).await?;
+    // Split messages if too long
+    } else {
+        // This is fucking awful whatttt
+        let mut i = 0;
+        while i < message.len() - 1 {
+            if i + MAX_MSG_LEN > message.len() {
+                channel_id.say(http, &message[i..]).await?;
+            } else {
+                channel_id.say(http, &message[i..(i + MAX_MSG_LEN)]).await?;
+            }
+            i += MAX_MSG_LEN;
+        }
+    }
+    Ok(())
 }
 
 /// Runs in the background of the bot if configured.
@@ -118,10 +142,9 @@ pub async fn alerts(http: Arc<Http>, cfg: Config, mut rx: Receiver<Config>)
 
                         let new_alert = Alert { category, headline, description, end_time };
                         if alert_list.insert(new_alert.clone())
-                            && let Err(e) = channel_id
-                                .say(&*http, format!("**New alert**:\n{new_alert}"))
-                                .await {
-                            error!("Failed to send alert to channel: {e}");
+                            && let Err(e) = send_alert(new_alert, channel_id, &http)
+                            .await {
+                                error!("Failed to send alert to channel: {e}");
                         }
                     }
                 }
