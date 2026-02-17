@@ -135,7 +135,7 @@ pub async fn alerts(http: Arc<Http>, cfg: Config, mut rx: Receiver<Config>)
                         let end_time = match end_time {
                             Some(t) => t,
                             None => {
-                                error!("Alert missing or invalid 'ends' time, skipping: {:?}", props);
+                                error!("Alert missing or invalid 'ends' time, ID: {:?}", feature["id"]);
                                 continue;
                             }
                         };
