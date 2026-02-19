@@ -541,17 +541,22 @@ async fn owo_helper(
     Ok(())
 }
 
-/// Subscribes to CatFacts!, Returns a random catfact.
-/// Some of these are questionable
-#[poise::command(prefix_command, slash_command)]
-pub async fn catfact(ctx: Context<'_>) -> Result<(), Error> {
+enum FactType {
+    Regular,
+    Catfact,
+}
+
+/// Fetches a random fact based on the given type
+async fn fact_helper(ctx: Context<'_>, ftype: FactType) -> Result<(), Error> {
     let client = Client::new();
-    let catfacts_url = String::from(
-        "https://raw.githubusercontent.com/vadimdemedes/cat-facts/master/cat-facts.json",
-    );
+
+    let url = match ftype {
+        FactType::Regular => "https://raw.githubusercontent.com/thomasdevine01/hackbot-functions/main/fact.json",
+        FactType::Catfact => "https://raw.githubusercontent.com/vadimdemedes/cat-facts/master/cat-facts.json",
+    };
 
     let response: Value = client
-        .get(catfacts_url)
+        .get(url)
         .header(USER_AGENT, "rust-web-api-client")
         .send()
         .await?
@@ -564,9 +569,26 @@ pub async fn catfact(ctx: Context<'_>) -> Result<(), Error> {
             a.choose(&mut rand::rng())
                 .and_then(|v| v.as_str())
         })
-        .unwrap_or("I'm sorry, I couldn't fetch any catfacts!");
+        .unwrap_or("I'm sorry, I couldn't fetch any facts!");
 
     ctx.say(message).await?;
-    
+
+    Ok(())
+}
+
+/// Subscribes to CatFacts!, Returns a random catfact.
+/// Some of these are questionable
+#[poise::command(prefix_command, slash_command)]
+pub async fn catfact(ctx: Context<'_>) -> Result<(), Error> {
+    fact_helper(ctx, FactType::Catfact).await?;
+    Ok(())
+}
+
+/// Returns a random fact! could be true, could be false. I'm not the judge of information. 
+/// 
+/// Add to the list! https://github.com/thomasdevine01/hackbot-functions/blob/main/fact.json
+#[poise::command(prefix_command, slash_command)]
+pub async fn fact(ctx: Context<'_>) -> Result<(), Error> {
+    fact_helper(ctx, FactType::Regular).await?;
     Ok(())
 }

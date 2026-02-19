@@ -58,6 +58,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             commands::fun::catfact(),
             commands::fun::boop(),
             commands::fun::coinflip(),
+            commands::fun::fact(),
             commands::fun::ferrisparty(),
             commands::fun::immuwune(),
             commands::fun::mock(),
