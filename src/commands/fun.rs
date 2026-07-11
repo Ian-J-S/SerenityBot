@@ -592,3 +592,10 @@ pub async fn fact(ctx: Context<'_>) -> Result<(), Error> {
     fact_helper(ctx, FactType::Regular).await?;
     Ok(())
 }
+
+/// ESCALATES
+#[poise::command(prefix_command, slash_command)]
+pub async fn escalate(ctx: Context<'_>) -> Result<(), Error> {
+    ctx.say("ESCALATING").await?;
+    Ok(())
+}
