@@ -13,7 +13,7 @@ check_interval = 60 # seconds
 # The underscore must be removed. 
 # Example: Butte County, CA would be "CAC007"
 # Current: Butte, Nevada, Monterey, Siskiyou
-areas = ["CAC007", "CAC053", "CAC053", "CAC093"]
+areas = ["CAC007", "CAC057", "CAC053", "CAC093"]
 
 [quiet_hours]
 start = "22:00"
