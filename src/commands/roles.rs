@@ -156,10 +156,10 @@ pub async fn add(
     }
 
     if !unsuccessful_roles.is_empty() {
-        ctx.say(format!("**Unable** to add:\n{}", unsuccessful_roles)).await?;
+        ctx.reply(format!("**Unable** to add:\n{}", unsuccessful_roles)).await?;
     }
     if !added_roles.is_empty() {
-        ctx.say(format!("**Successfully** added:\n{}", added_roles)).await?;
+        ctx.reply(format!("**Successfully** added:\n{}", added_roles)).await?;
     }
 
     Ok(())
@@ -196,10 +196,10 @@ pub async fn del(
     }
 
     if !unsuccessful_roles.is_empty() {
-        ctx.say(format!("**Unable** to delete:\n{}", unsuccessful_roles)).await?;
+        ctx.reply(format!("**Unable** to delete:\n{}", unsuccessful_roles)).await?;
     }
     if !deleted_roles.is_empty() {
-        ctx.say(format!("**Successfully** deleted:\n{}", deleted_roles)).await?;
+        ctx.reply(format!("**Successfully** deleted:\n{}", deleted_roles)).await?;
     }
 
     Ok(())
