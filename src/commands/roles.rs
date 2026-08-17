@@ -22,7 +22,8 @@ pub async fn list_roles(ctx: Context<'_>) -> Result<(), Error> {
     ];
 
     // Convert roles hashmap into vector of strings, ignore some roles
-    let mut roles: Vec<String> = roles.iter()
+    let mut roles: Vec<String> = roles
+        .iter()
         .filter_map(|r| {
             let name = r.1.name.clone();
             if hidden_roles.contains(&name) {
@@ -46,7 +47,7 @@ pub async fn list_roles(ctx: Context<'_>) -> Result<(), Error> {
 fn get_role_id(target_role: &str, roles: &HashMap<RoleId, Role>) -> Option<RoleId> {
     for role in roles {
         if role.1.name == target_role {
-            return Some(*role.0)
+            return Some(*role.0);
         }
     }
     None
@@ -61,21 +62,21 @@ async fn autocomplete_role<'a>(
     // If deleting, get the user's roles.
     // In the future I want to change this to avoid using hardcoded command names.
     let roles: Vec<Role> = match ctx.invoked_command_name() {
-        "add" => {
-            match ctx.guild_id() {
-                Some(guild_id) => {
-                    guild_id
-                        .roles(&ctx).await.ok()
-                        .map(|m| m.into_values().collect::<Vec<Role>>())},
-                None => None
-            } 
-        }
-        "del" => {
-            ctx.author_member().await
-            .and_then(|member| member.roles(ctx))
-        }
-        _ => None
-    }.unwrap_or(Vec::new());
+        "add" => match ctx.guild_id() {
+            Some(guild_id) => guild_id
+                .roles(&ctx)
+                .await
+                .ok()
+                .map(|m| m.into_values().collect::<Vec<Role>>()),
+            None => None,
+        },
+        "del" => ctx
+            .author_member()
+            .await
+            .and_then(|member| member.roles(ctx)),
+        _ => None,
+    }
+    .unwrap_or(Vec::new());
 
     // Need to get prefix
     // Then stick it onto the beginning of whatever suggestions come back
@@ -84,31 +85,27 @@ async fn autocomplete_role<'a>(
         None => ("", partial),
     };
 
-    roles
-        .into_iter()
-        .filter_map(move |r| {
-            if r.name.starts_with(current) && !prefix.contains(&r.name) {
-                Some(format!("{prefix} {}", r.name))
-            } else {
-                None
-            }
-        })
+    roles.into_iter().filter_map(move |r| {
+        if r.name.starts_with(current) && !prefix.contains(&r.name) {
+            Some(format!("{prefix} {}", r.name))
+        } else {
+            None
+        }
+    })
 }
 
 /// Get suggestions that are close to the incorrect role a user entered.
-fn get_role_suggestions<'a, T>(role: &'a str, roles: T) -> Option<String> 
-where 
+fn get_role_suggestions<'a, T>(role: &'a str, roles: T) -> Option<String>
+where
     T: Iterator<Item = &'a Role>,
 {
-    let suggestions = roles.fold("".to_owned(),
-        |acc, cur| {
-            if levenshtein(role, &cur.name) <= 3 {
-                format!("{acc} {}", cur.name)    
-            } else {
-                acc
-            }
+    let suggestions = roles.fold("".to_owned(), |acc, cur| {
+        if levenshtein(role, &cur.name) <= 3 {
+            format!("{acc} {}", cur.name)
+        } else {
+            acc
         }
-    );
+    });
 
     if suggestions.is_empty() {
         None
@@ -122,7 +119,7 @@ where
 pub async fn add(
     ctx: Context<'_>,
     #[rest]
-    #[description = "Role(s) to add"] 
+    #[description = "Role(s) to add"]
     #[autocomplete = "autocomplete_role"]
     roles: String,
 ) -> Result<(), Error> {
@@ -156,10 +153,12 @@ pub async fn add(
     }
 
     if !unsuccessful_roles.is_empty() {
-        ctx.reply(format!("**Unable** to add:\n{}", unsuccessful_roles)).await?;
+        ctx.reply(format!("**Unable** to add:\n{}", unsuccessful_roles))
+            .await?;
     }
     if !added_roles.is_empty() {
-        ctx.reply(format!("**Successfully** added:\n{}", added_roles)).await?;
+        ctx.reply(format!("**Successfully** added:\n{}", added_roles))
+            .await?;
     }
 
     Ok(())
@@ -170,7 +169,7 @@ pub async fn add(
 pub async fn del(
     ctx: Context<'_>,
     #[rest]
-    #[description = "Role(s) to delete"] 
+    #[description = "Role(s) to delete"]
     #[autocomplete = "autocomplete_role"]
     roles: String,
 ) -> Result<(), Error> {
@@ -196,10 +195,12 @@ pub async fn del(
     }
 
     if !unsuccessful_roles.is_empty() {
-        ctx.reply(format!("**Unable** to delete:\n{}", unsuccessful_roles)).await?;
+        ctx.reply(format!("**Unable** to delete:\n{}", unsuccessful_roles))
+            .await?;
     }
     if !deleted_roles.is_empty() {
-        ctx.reply(format!("**Successfully** deleted:\n{}", deleted_roles)).await?;
+        ctx.reply(format!("**Successfully** deleted:\n{}", deleted_roles))
+            .await?;
     }
 
     Ok(())
@@ -216,26 +217,32 @@ where
     !iter.into_iter().all(|x| uniq.insert(x))
 }
 
-/// Helper function to create multiple roles. Hidden from help menu 
+/// Helper function to create multiple roles. Hidden from help menu
 /// because only for privileged users.
-#[poise::command(prefix_command, slash_command, guild_only, hide_in_help,
-required_permissions = "MANAGE_ROLES")]
+#[poise::command(
+    prefix_command,
+    slash_command,
+    guild_only,
+    hide_in_help,
+    required_permissions = "MANAGE_ROLES"
+)]
 pub async fn create_roles(
     ctx: Context<'_>,
     #[rest]
     #[description = "Names of role(s) you wish to create"]
-    roles: String
+    roles: String,
 ) -> Result<(), Error> {
     let guild_id = ctx.guild_id().ok_or("Unable to get guild_id")?;
     let existing_roles = guild_id.roles(&ctx).await?;
 
     // Do not allow roles with duplicate names to be created
     if has_duplicates(roles.split_whitespace())
-        || existing_roles.values().any(|r| roles.contains(&r.name)) {
+        || existing_roles.values().any(|r| roles.contains(&r.name))
+    {
         ctx.say("Duplicate role(s) found, unable to create").await?;
         return Ok(());
     }
-    
+
     let mut created_roles = String::new();
     for role in roles.split_whitespace() {
         let builder = EditRole::new().name(role).mentionable(true);
@@ -244,17 +251,19 @@ pub async fn create_roles(
         created_roles.push(' ');
     }
 
-    ctx.say(format!("Successfully created roles: {created_roles}")).await?;
+    ctx.say(format!("Successfully created roles: {created_roles}"))
+        .await?;
 
     Ok(())
 }
 
 /// List roles of user that called this command
 #[poise::command(prefix_command, slash_command, guild_only)]
-pub async fn my_roles(
-    ctx: Context<'_>,
-) -> Result<(), Error> {
-    let member = ctx.author_member().await.ok_or("Unable to get guild member")?;
+pub async fn my_roles(ctx: Context<'_>) -> Result<(), Error> {
+    let member = ctx
+        .author_member()
+        .await
+        .ok_or("Unable to get guild member")?;
     let message = if let Some(roles) = member.roles(ctx) {
         let roles_str = roles
             .iter()
@@ -277,11 +286,7 @@ fn can_delete(
     member_id: serenity::UserId,
     bot_id: serenity::UserId,
 ) -> bool {
-    message.author.id == bot_id
-        && message
-            .mentions
-            .iter()
-            .any(|user| user.id == member_id)
+    message.author.id == bot_id && message.mentions.iter().any(|user| user.id == member_id)
 }
 
 /// Helper to display a denial message when a user is not allowed to delete a message.
@@ -301,14 +306,8 @@ async fn deny(ctx: Context<'_>) -> Result<(), Error> {
 ///
 /// You can provide one or more message IDs, reply to the message you want deleted, or use the
 /// command with no arguments to delete the bot's previous message.
-#[poise::command(
-    prefix_command,
-)]
-pub async fn private(
-    ctx: Context<'_>,
-    #[rest]
-    message_ids: Option<String>,
-) -> Result<(), Error> {
+#[poise::command(prefix_command)]
+pub async fn private(ctx: Context<'_>, #[rest] message_ids: Option<String>) -> Result<(), Error> {
     let member_id = ctx.author().id;
     let bot_id = ctx.framework().bot_id;
     let channel_id = ctx.channel_id();

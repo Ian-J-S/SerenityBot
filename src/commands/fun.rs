@@ -1,7 +1,10 @@
 use crate::{Context, Error, utils::get_last_message};
 use chrono::Datelike;
 use poise::serenity_prelude::{Mention, ReactionType};
-use poise::{serenity_prelude::{self as serenity, Mentionable}, CreateReply};
+use poise::{
+    CreateReply,
+    serenity_prelude::{self as serenity, Mentionable},
+};
 use rand::{Rng, seq::IndexedRandom};
 use reqwest::{Client, header::USER_AGENT};
 use serde_json::Value;
@@ -17,11 +20,8 @@ pub async fn ping(ctx: Context<'_>) -> Result<(), Error> {
 ///
 /// Gives a 50-50 chance of heads or tails
 #[poise::command(prefix_command, track_edits, slash_command)]
-pub async fn coinflip(
-    ctx: Context<'_>,
-) -> Result<(), Error> {
-    let message = ["Heads", "Tails"].choose(&mut rand::rng())
-        .unwrap(); // Only returns 'none' if array is empty
+pub async fn coinflip(ctx: Context<'_>) -> Result<(), Error> {
+    let message = ["Heads", "Tails"].choose(&mut rand::rng()).unwrap(); // Only returns 'none' if array is empty
 
     ctx.say(*message).await?;
     Ok(())
@@ -106,8 +106,7 @@ fn mock_helper(msg: &str) -> String {
 #[poise::command(prefix_command, slash_command)]
 pub async fn mock(
     ctx: Context<'_>,
-    #[description = "Message to mock"] 
-    msg: Option<serenity::Message>,
+    #[description = "Message to mock"] msg: Option<serenity::Message>,
 ) -> Result<(), Error> {
     let msg = match msg {
         Some(msg) => msg,
@@ -124,9 +123,8 @@ pub async fn mock(
 /// Context menu version of mock?
 #[poise::command(context_menu_command = "Mock")]
 pub async fn mock_ctx_menu(
-    ctx:Context<'_>,
-    #[description = "Message to mock"] 
-    msg: serenity::Message,
+    ctx: Context<'_>,
+    #[description = "Message to mock"] msg: serenity::Message,
 ) -> Result<(), Error> {
     let response = mock_helper(&msg.content);
     ctx.say(response).await?;
@@ -139,7 +137,7 @@ fn die_roll(die: u32) -> u32 {
     rng.random_range(1..=die)
 }
 
-/// Roll some dice 
+/// Roll some dice
 ///
 /// Enter a roll count and a die value optionally prefixed with  'd'
 /// ```
@@ -153,13 +151,14 @@ pub async fn roll(
     #[max = 100] // Min and max only apply to slash commands
     #[description = "Number of rolls to make"]
     roll_count: Option<u32>,
-    #[description = "Dice type"]
-    sides: Option<String>,
+    #[description = "Dice type"] sides: Option<String>,
 ) -> Result<(), Error> {
     // Add a reaction if the command was a prefix command.
     // I don't think it is possible to do this with a slash command.
     if let poise::Context::Prefix(pctx) = ctx {
-        pctx.msg.react(&pctx, ReactionType::Unicode("🎲".to_string())).await?;
+        pctx.msg
+            .react(&pctx, ReactionType::Unicode("🎲".to_string()))
+            .await?;
     }
 
     // Default to 2 rolls
@@ -169,26 +168,30 @@ pub async fn roll(
 
     // Since min and max only work with slash commands, have to bounds check here
     if !(1..=100).contains(&roll_count) {
-        ctx.say(format!("Whoah {author}, your rolls are too powerful!")).await?;
-        return Ok(())
+        ctx.say(format!("Whoah {author}, your rolls are too powerful!"))
+            .await?;
+        return Ok(());
     }
 
     // Parse specified dice value or go with d6 if failure / unspecified
     let dvalue: u32 = match sides.clone() {
-        Some(dtype) if dtype.starts_with('d') => {
-            dtype.split_once('d')
-                .map(|(_, n)| n)
-                .and_then(|s| s.parse().ok())
-                .unwrap_or(6)
-        }
+        Some(dtype) if dtype.starts_with('d') => dtype
+            .split_once('d')
+            .map(|(_, n)| n)
+            .and_then(|s| s.parse().ok())
+            .unwrap_or(6),
         Some(s) => s.parse().ok().unwrap_or(6),
         None => 6,
     };
 
     // Maybe I should change this to make it easier to read, I just like list folding
     let plurality = if roll_count > 1 { "'s" } else { "" };
-    let (_, sum, message) = (0..roll_count)
-        .fold((1, 0, format!("{author} rolled {roll_count} d{dvalue}{plurality}\n")),
+    let (_, sum, message) = (0..roll_count).fold(
+        (
+            1,
+            0,
+            format!("{author} rolled {roll_count} d{dvalue}{plurality}\n"),
+        ),
         |(count, sum, msg), _| {
             let roll = die_roll(dvalue);
             let roll_info = if roll == 20 && dvalue == 20 {
@@ -198,11 +201,16 @@ pub async fn roll(
             } else {
                 ""
             };
-            (count + 1, sum + roll, format!("{}\nRoll {}: {} {}", msg, count, roll, roll_info))
-        }
+            (
+                count + 1,
+                sum + roll,
+                format!("{}\nRoll {}: {} {}", msg, count, roll, roll_info),
+            )
+        },
     );
 
-    ctx.say(format!("{}\n\nSum of all rolls: {}", message, sum)).await?;
+    ctx.say(format!("{}\n\nSum of all rolls: {}", message, sum))
+        .await?;
 
     Ok(())
 }
@@ -233,23 +241,25 @@ pub async fn wiki(
         .as_object()
         .and_then(|pages| pages.values().next());
 
-    let message = page.and_then(|page| {
-        page["title"].as_str().and_then(|title| {
-            page["extract"].as_str().map(|extract| {
-                // Some articles return a title with an empty extract
-                if extract.is_empty() {
-                    String::from("That article exists but I couldn't get an extract!")
-                }
-                // If the message (and some formatting) is longer than 2000 chars,
-                // truncate it
-                else if title.len() + extract.len() + 6 > 2000 {
-                    format!("**{title}:**\n{}...", &extract[..(2000 - title.len() - 9)])
-                } else {
-                    format!("**{title}:**\n{}", &extract)
-                }
+    let message = page
+        .and_then(|page| {
+            page["title"].as_str().and_then(|title| {
+                page["extract"].as_str().map(|extract| {
+                    // Some articles return a title with an empty extract
+                    if extract.is_empty() {
+                        String::from("That article exists but I couldn't get an extract!")
+                    }
+                    // If the message (and some formatting) is longer than 2000 chars,
+                    // truncate it
+                    else if title.len() + extract.len() + 6 > 2000 {
+                        format!("**{title}:**\n{}...", &extract[..(2000 - title.len() - 9)])
+                    } else {
+                        format!("**{title}:**\n{}", &extract)
+                    }
+                })
             })
         })
-    }).unwrap_or(String::from("Sorry, I couldn't find that article!"));
+        .unwrap_or(String::from("Sorry, I couldn't find that article!"));
 
     ctx.say(message).await?;
 
@@ -274,7 +284,9 @@ fn choose_ban_msg(user_mentioned: Mention) -> String {
         format!("brb, banning {user_mentioned}."),
         format!("you got it, banning {user_mentioned}."),
         format!("{user_mentioned}, you must pay for your crimes. A ban shall suffice."),
-        format!("today's controvesial opinion reward goes to {user_mentioned}. The prize? A ban, duh."),
+        format!(
+            "today's controvesial opinion reward goes to {user_mentioned}. The prize? A ban, duh."
+        ),
         format!("{user_mentioned} gotta ban you now. Sorry."),
         format!("{user_mentioned} stop talking before you--oh, wait. Too late."),
         format!("{user_mentioned}, really? I wish I could ban you more than once."),
@@ -291,11 +303,15 @@ fn choose_ban_msg(user_mentioned: Mention) -> String {
     let mut rng = rand::rng();
 
     if rng.random_bool(0.1) {
-        ban_easter_eggs.choose(&mut rng)
-            .unwrap_or(&ban_easter_eggs[0]).to_string()
+        ban_easter_eggs
+            .choose(&mut rng)
+            .unwrap_or(&ban_easter_eggs[0])
+            .to_string()
     } else {
-        ban_messages.choose(&mut rng)
-            .unwrap_or(&ban_messages[0]).to_string()
+        ban_messages
+            .choose(&mut rng)
+            .unwrap_or(&ban_messages[0])
+            .to_string()
     }
 }
 
@@ -303,8 +319,7 @@ fn choose_ban_msg(user_mentioned: Mention) -> String {
 #[poise::command(prefix_command, slash_command, guild_only)]
 pub async fn ban(
     ctx: Context<'_>,
-    #[description = "@ user to 'ban'"]
-    user: Option<Mention>,
+    #[description = "@ user to 'ban'"] user: Option<Mention>,
 ) -> Result<(), Error> {
     let mention = match user {
         Some(user) => user,
@@ -322,7 +337,11 @@ pub async fn ban(
 /// YEET
 #[poise::command(prefix_command, slash_command)]
 pub async fn yeet(ctx: Context<'_>) -> Result<(), Error> {
-    ctx.say(format!("{} YEET!\nhttps://youtu.be/mbDkgGv-vJ4?t=4", ctx.author().mention())).await?;
+    ctx.say(format!(
+        "{} YEET!\nhttps://youtu.be/mbDkgGv-vJ4?t=4",
+        ctx.author().mention()
+    ))
+    .await?;
     Ok(())
 }
 
@@ -338,10 +357,11 @@ pub async fn trickortreat(ctx: Context<'_>) -> Result<(), Error> {
         let choices = [
             "it is not spooktober, try again later",
             "try again in october",
-             "YOU DARE TRY TO TRICK OR TREAT WHEN IT'S NOT OCTOBER"
+            "YOU DARE TRY TO TRICK OR TREAT WHEN IT'S NOT OCTOBER",
         ];
         choices.choose(&mut rand::rng()).copied()
-    }.ok_or("error in choosing random message")?;
+    }
+    .ok_or("error in choosing random message")?;
 
     ctx.say(message).await?;
 
@@ -389,7 +409,6 @@ fn owofy(input: &str) -> String {
         ("has", "haz"),
         ("have", "haz"),
         ("is", "iws"),
-
         // some words have already been uwu-ized
         ("fuck", "henck"),
         ("bitch", "vewwy nice lady"),
@@ -405,7 +424,6 @@ fn owofy(input: &str) -> String {
         ("gwoss", "AMAZEBALLS (✿ ♡‿♡)"),
         ("nasty", "musky"),
         ("hand", "paw"),
-
         // compounding uwu-ness
         ("uwu", "uwuwuwu"),
         ("owo", "owowowo"),
@@ -442,14 +460,11 @@ fn owofy(input: &str) -> String {
 ///
 /// If no argument is provided, use last message.
 #[poise::command(prefix_command, slash_command)]
-pub async fn owo(
-    ctx:Context<'_>,
-    msg: Option<serenity::Message>,
-) -> Result<(), Error> {
+pub async fn owo(ctx: Context<'_>, msg: Option<serenity::Message>) -> Result<(), Error> {
     // If no argument provided, get last message
     let msg = match msg {
         Some(msg) => msg,
-        None => get_last_message(&ctx).await?
+        None => get_last_message(&ctx).await?,
     };
 
     owo_helper(ctx, &msg).await?;
@@ -460,10 +475,7 @@ pub async fn owo(
 // I decided to make this a context-menu command rather
 // than having 2 commands that do the same thing
 #[poise::command(context_menu_command = "uwu")]
-pub async fn uwu(
-    ctx:Context<'_>,
-    msg: serenity::Message,
-) -> Result<(), Error> {
+pub async fn uwu(ctx: Context<'_>, msg: serenity::Message) -> Result<(), Error> {
     owo_helper(ctx, &msg).await?;
     Ok(())
 }
@@ -484,14 +496,14 @@ pub async fn immuwune(ctx: Context<'_>) -> Result<(), Error> {
     let author = ctx.author().name.clone();
 
     let mut db = ctx.data().db.lock().await;
-    
+
     let message = if db.immuwune.insert(author.clone()) {
         "You have successfully been immuwunized OwO"
     } else {
         db.immuwune.remove(&author);
         "You have successfully been deimmuwunized UwU"
     };
-    
+
     db.save(&ctx.data().db_path).await?;
 
     ctx.reply(message).await?;
@@ -499,12 +511,9 @@ pub async fn immuwune(ctx: Context<'_>) -> Result<(), Error> {
 }
 
 /// Helper function for owo/uwu with immuwunity check
-async fn owo_helper(
-    ctx: Context<'_>,
-    msg: &serenity::Message,
-) -> Result<(), Error> {
+async fn owo_helper(ctx: Context<'_>, msg: &serenity::Message) -> Result<(), Error> {
     let db = ctx.data().db.lock().await;
-    
+
     // Check immuwunity for both message author and command author
     if db.immuwune.contains(&ctx.author().name) {
         ctx.say("UwU you'we immuwune, sowwy! 😭").await?;
@@ -514,7 +523,7 @@ async fn owo_helper(
         let transformed = owofy(&msg.content);
         ctx.say(&transformed).await?;
     }
-    
+
     Ok(())
 }
 
@@ -528,8 +537,12 @@ async fn fact_helper(ctx: Context<'_>, ftype: FactType) -> Result<(), Error> {
     let client = Client::new();
 
     let url = match ftype {
-        FactType::Regular => "https://raw.githubusercontent.com/thomasdevine01/hackbot-functions/main/fact.json",
-        FactType::Catfact => "https://raw.githubusercontent.com/vadimdemedes/cat-facts/master/cat-facts.json",
+        FactType::Regular => {
+            "https://raw.githubusercontent.com/thomasdevine01/hackbot-functions/main/fact.json"
+        }
+        FactType::Catfact => {
+            "https://raw.githubusercontent.com/vadimdemedes/cat-facts/master/cat-facts.json"
+        }
     };
 
     let response: Value = client
@@ -542,10 +555,7 @@ async fn fact_helper(ctx: Context<'_>, ftype: FactType) -> Result<(), Error> {
 
     let message = response
         .as_array()
-        .and_then(|a| {
-            a.choose(&mut rand::rng())
-                .and_then(|v| v.as_str())
-        })
+        .and_then(|a| a.choose(&mut rand::rng()).and_then(|v| v.as_str()))
         .unwrap_or("I'm sorry, I couldn't fetch any facts!");
 
     ctx.say(message).await?;
@@ -561,8 +571,8 @@ pub async fn catfact(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
-/// Returns a random fact! could be true, could be false. I'm not the judge of information. 
-/// 
+/// Returns a random fact! could be true, could be false. I'm not the judge of information.
+///
 /// Add to the list! https://github.com/thomasdevine01/hackbot-functions/blob/main/fact.json
 #[poise::command(prefix_command, slash_command)]
 pub async fn fact(ctx: Context<'_>) -> Result<(), Error> {

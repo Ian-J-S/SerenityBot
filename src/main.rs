@@ -72,7 +72,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             commands::fun::uwu(),
             commands::fun::wiki(),
             commands::fun::yeet(),
-
             commands::info::echo(),
             commands::info::getvotes(),
             commands::info::help(),
@@ -81,7 +80,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             commands::info::shutdown(),
             commands::info::uptime(),
             commands::info::vote(),
-
             commands::roles::add(),
             commands::roles::create_roles(),
             commands::roles::del(),
@@ -106,14 +104,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Set to true to bypass checks, which is useful for testing
         skip_checks_for_owners: false,
         // This code is run before every command
-        #[cfg(debug_assertions)] 
+        #[cfg(debug_assertions)]
         pre_command: |ctx| {
             Box::pin(async move {
                 println!("Executing command {}...", ctx.command().qualified_name);
             })
         },
         // This code is run after a command if it was successful (returned Ok)
-        #[cfg(debug_assertions)] 
+        #[cfg(debug_assertions)]
         post_command: |ctx| {
             Box::pin(async move {
                 println!("Executed command {}!", ctx.command().qualified_name);
@@ -138,8 +136,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         channel_id
                             .say(
                                 &ctx.http,
-                                    // Welcome to the world of tomorrow!
-                                    "https://c.tenor.com/EkI_JnvRTogAAAAd/tenor.gif",
+                                // Welcome to the world of tomorrow!
+                                "https://c.tenor.com/EkI_JnvRTogAAAAd/tenor.gif",
                             )
                             .await?;
                     }
@@ -168,14 +166,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         tokio::spawn(async move {
                             let _ = config::watch_config(tx).await;
                         });
-                    },
+                    }
                     Err(e) => warn!("Running without NWS alerts due to toml error: {e}"),
                 }
 
                 let db_path = String::from("db.json");
-                let db = Mutex::new(
-                    Database::load(&db_path).await?,
-                );
+                let db = Mutex::new(Database::load(&db_path).await?);
 
                 Ok(Data {
                     votes: Mutex::new(HashMap::new()),
@@ -190,10 +186,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let token = var("DISCORD_TOKEN")
         .expect("Missing `DISCORD_TOKEN` env var, see README for more information.");
-    let intents =
-        serenity::GatewayIntents::non_privileged() 
-            | serenity::GatewayIntents::MESSAGE_CONTENT
-            | serenity::GatewayIntents::GUILD_MEMBERS;
+    let intents = serenity::GatewayIntents::non_privileged()
+        | serenity::GatewayIntents::MESSAGE_CONTENT
+        | serenity::GatewayIntents::GUILD_MEMBERS;
 
     let client = serenity::ClientBuilder::new(token, intents)
         .framework(framework)

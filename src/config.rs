@@ -8,15 +8,10 @@
 //! The config file must be named 'config.toml' and must
 //! be placed in the same directory as the bot.
 
-use std::{
-    collections::HashSet,
-    fs,
-    path::Path,
-    time::Duration,
-};
+use std::{collections::HashSet, fs, path::Path, time::Duration};
 
 use chrono::NaiveTime;
-use notify::{Watcher, RecursiveMode, RecommendedWatcher};
+use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use serde::Deserialize;
 use serde_with::{DurationSeconds, serde_as};
 use tokio::sync::watch::Sender;
@@ -33,7 +28,7 @@ pub struct Config {
 }
 
 /// TOML key `[alerts]`
-/// Used to configure that alerts are sent to, the types of NWS alerts displayed, 
+/// Used to configure that alerts are sent to, the types of NWS alerts displayed,
 /// and how often to check for new alerts.
 #[serde_as]
 #[derive(Clone, Debug, Deserialize)]
@@ -43,7 +38,7 @@ pub struct AlertConfig {
 
     #[serde_as(as = "DurationSeconds<u64>")]
     pub check_interval: Duration,
-    pub areas: Vec<String>
+    pub areas: Vec<String>,
 }
 
 /// TOML key `[quiet_hours]`
@@ -73,7 +68,8 @@ pub fn load_config() -> Result<Config, Box<dyn std::error::Error>> {
 
     let config: Config = toml::from_str(&config_str)?;
 
-    #[cfg(debug_assertions)] {
+    #[cfg(debug_assertions)]
+    {
         println!("Alerts: {:?}", config.alerts);
         println!("Quiet hours: {:?}", config.quiet_hours);
     }
@@ -82,8 +78,7 @@ pub fn load_config() -> Result<Config, Box<dyn std::error::Error>> {
 }
 
 /// Runs in the background watching for config file changes.
-pub async fn watch_config(tx: Sender<Config>) 
--> Result<(), Box<dyn std::error::Error>> {
+pub async fn watch_config(tx: Sender<Config>) -> Result<(), Box<dyn std::error::Error>> {
     let (notify_tx, mut notify_rx) = tokio::sync::mpsc::unbounded_channel();
 
     let mut watcher = RecommendedWatcher::new(
@@ -94,21 +89,21 @@ pub async fn watch_config(tx: Sender<Config>)
         },
         notify::Config::default(),
     )?;
-    
+
     watcher.watch(Path::new("."), RecursiveMode::NonRecursive)?;
     info!("Watching config.toml for changes");
-    
+
     loop {
         tokio::select! {
             Some(event) = notify_rx.recv() => {
-                if event.paths.iter().any(|p| p.ends_with("config.toml")) 
+                if event.paths.iter().any(|p| p.ends_with("config.toml"))
                     && event.kind.is_modify() {
                     #[cfg(debug_assertions)]
                     println!("Config file changed: {:?}", event);
 
                     // Try to debounce config changes a little? fuck
                     tokio::time::sleep(Duration::from_secs(1)).await;
-                    
+
                     match load_config() {
                         Ok(new_cfg) => {
                             if let Err(e) = tx.send(new_cfg) {

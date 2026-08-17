@@ -6,10 +6,11 @@ use serde_json::Value;
 use std::{
     collections::HashSet,
     fmt::{self, Display},
-    sync::Arc, time::Duration,
+    sync::Arc,
+    time::Duration,
 };
 use tokio::sync::watch::Receiver;
-use tracing::{info, error};
+use tracing::{error, info};
 
 const MAX_MSG_LEN: usize = 2000;
 
@@ -23,7 +24,11 @@ struct Alert {
 
 impl Display for Alert {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Category: {}\n{}\n{}", self.category, self.headline, self.description)
+        write!(
+            f,
+            "Category: {}\n{}\n{}",
+            self.category, self.headline, self.description
+        )
     }
 }
 
@@ -60,8 +65,7 @@ async fn send_alert(alert: Alert, channel_id: ChannelId, http: &Arc<Http>) -> Re
 /// Runs in the background of the bot if configured.
 /// Pulls weather alerts from the nws.gov API and sends
 /// them to the preconfigured channel.
-pub async fn alerts(http: Arc<Http>, cfg: Config, mut rx: Receiver<Config>)
--> Result<(), Error> {
+pub async fn alerts(http: Arc<Http>, cfg: Config, mut rx: Receiver<Config>) -> Result<(), Error> {
     // List of already seen alerts
     let mut alert_list = HashSet::new();
 
@@ -75,7 +79,7 @@ pub async fn alerts(http: Arc<Http>, cfg: Config, mut rx: Receiver<Config>)
 
     // Check for ended alerts every 24 hours
     let mut cleanup_interval = tokio::time::interval(Duration::from_hours(24));
-    
+
     info!("Listening for NWS alerts");
 
     loop {
@@ -167,7 +171,7 @@ pub async fn alerts(http: Arc<Http>, cfg: Config, mut rx: Receiver<Config>)
                 let cfg = rx.borrow_and_update();
                 #[cfg(debug_assertions)]
                 println!("New config: {:?}", *cfg);
-                
+
                 // Update config values
                 check_interval = tokio::time::interval(cfg.alerts.check_interval);
                 channel_id = ChannelId::new(cfg.alerts.alerts_channel);

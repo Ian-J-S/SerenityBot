@@ -101,10 +101,19 @@ pub async fn echo(
 /// Tells you when you joined the server in UTC
 #[poise::command(prefix_command, slash_command, guild_only)]
 pub async fn joined(ctx: Context<'_>) -> Result<(), Error> {
-    let author = ctx.author_member().await.expect("Unable to retrieve command author");
+    let author = ctx
+        .author_member()
+        .await
+        .expect("Unable to retrieve command author");
     let joined = author.joined_at.expect("Unable to retrieve join time");
     let guild_name = ctx.guild().expect("Unable to retrieve guild").name.clone();
-    ctx.say(format!("{} joined {}\n{}", author.mention(), guild_name, joined)).await?;
+    ctx.say(format!(
+        "{} joined {}\n{}",
+        author.mention(),
+        guild_name,
+        joined
+    ))
+    .await?;
     Ok(())
 }
 
@@ -115,9 +124,7 @@ fn plural(n: u64) -> &'static str {
 
 /// Helper function to get the uptime of the server running the bot.
 fn get_server_uptime() -> Result<String, Error> {
-    let com = Command::new("uptime")
-        .arg("-p")
-        .output()?;
+    let com = Command::new("uptime").arg("-p").output()?;
 
     let output = String::from_utf8(com.stdout)?;
 
@@ -130,7 +137,7 @@ pub async fn uptime(ctx: Context<'_>) -> Result<(), Error> {
     // Bot
     let duration = ctx.data().start_time.elapsed();
     let seconds = duration.as_secs();
-    
+
     let days = seconds / 86400;
     let hours = (seconds % 86400) / 3600;
     let minutes = (seconds % 3600) / 60;
@@ -138,17 +145,22 @@ pub async fn uptime(ctx: Context<'_>) -> Result<(), Error> {
 
     // Server
     let server_uptime = get_server_uptime()?;
-    
+
     ctx.say(format!(
         "Bot has been up {} day{}, {} hour{}, {} minute{}, {} second{}\n\
         Server has been {}",
-        days, plural(days),
-        hours, plural(hours),
-        minutes, plural(minutes),
-        secs, plural(secs),
+        days,
+        plural(days),
+        hours,
+        plural(hours),
+        minutes,
+        plural(minutes),
+        secs,
+        plural(secs),
         server_uptime,
-    )).await?;
-    
+    ))
+    .await?;
+
     Ok(())
 }
 
@@ -160,16 +172,12 @@ pub async fn prse(ctx: Context<'_>) -> Result<(), Error> {
 }
 
 #[poise::command(prefix_command, slash_command, context_menu_command = "List mentions")]
-pub async fn list_mentions(
-    ctx: Context<'_>,
-    msg: serenity::Message,
-) -> Result<(), Error> {
+pub async fn list_mentions(ctx: Context<'_>, msg: serenity::Message) -> Result<(), Error> {
     let mentions = msg.mentions;
     let response = mentions
         .iter()
-        .fold(String::from("Mentions:\n"),
-            |acc, cur| {
-                format!("{acc}, {}", cur.name)
+        .fold(String::from("Mentions:\n"), |acc, cur| {
+            format!("{acc}, {}", cur.name)
         });
 
     ctx.say(response).await?;

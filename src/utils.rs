@@ -18,8 +18,7 @@ pub async fn get_last_message(ctx: &Context<'_>) -> Result<serenity::Message, Er
         .messages(ctx, GetMessages::new().limit(limit))
         .await?;
 
-    let message = messages.last()
-        .ok_or("Unable to get last message")?;
+    let message = messages.last().ok_or("Unable to get last message")?;
 
     Ok(message.clone())
 }
