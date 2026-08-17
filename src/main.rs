@@ -7,7 +7,7 @@ use config::load_config;
 use db::Database;
 
 use dotenvy::dotenv;
-use poise::serenity_prelude as serenity;
+use poise::serenity_prelude::{self as serenity};
 use std::{
     collections::HashMap,
     env::var,
@@ -119,13 +119,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("Executed command {}!", ctx.command().qualified_name);
             })
         },
-        #[cfg(debug_assertions)] 
-        event_handler: |_ctx, event, _framework, _data| {
+        event_handler: |ctx, event, _framework, _data| {
             Box::pin(async move {
+                #[cfg(debug_assertions)]
                 println!(
                     "Got an event in event handler: {:?}",
                     event.snake_case_name()
                 );
+
+                // Send a greeting to new members
+                if let serenity::FullEvent::GuildMemberAddition { new_member } = event {
+                    let system_channel_id = new_member
+                        .guild_id
+                        .to_guild_cached(&ctx.cache)
+                        .and_then(|guild| guild.system_channel_id);
+
+                    if let Some(channel_id) = system_channel_id {
+                        channel_id
+                            .say(
+                                &ctx.http,
+                                    // Welcome to the world of tomorrow!
+                                    "https://c.tenor.com/EkI_JnvRTogAAAAd/tenor.gif",
+                            )
+                            .await?;
+                    }
+                }
                 Ok(())
             })
         },
@@ -173,7 +191,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let token = var("DISCORD_TOKEN")
         .expect("Missing `DISCORD_TOKEN` env var, see README for more information.");
     let intents =
-        serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT;
+        serenity::GatewayIntents::non_privileged() 
+            | serenity::GatewayIntents::MESSAGE_CONTENT
+            | serenity::GatewayIntents::GUILD_MEMBERS;
 
     let client = serenity::ClientBuilder::new(token, intents)
         .framework(framework)
