@@ -1,4 +1,4 @@
-use crate::{Context, Error, utils::get_last_message};
+use crate::{Context, Error};
 use poise::serenity_prelude::{self as serenity, Mentionable};
 use std::process::Command;
 
@@ -159,27 +159,19 @@ pub async fn prse(ctx: Context<'_>) -> Result<(), Error> {
     Ok(())
 }
 
-/// Removes a message that the bot had sent
-#[poise::command(prefix_command, slash_command,
-required_permissions = "MANAGE_MESSAGES | MANAGE_THREADS")]
-pub async fn private(
+#[poise::command(prefix_command, slash_command, context_menu_command = "List mentions")]
+pub async fn list_mentions(
     ctx: Context<'_>,
-    #[description = "Message to delete (gets last message if not provided)"]
-    msg: Option<serenity::Message>,
+    msg: serenity::Message,
 ) -> Result<(), Error> {
-    let res = match msg {
-        Some(msg) => {
-            msg.delete(&ctx).await
-        }
-        None => {
-            let msg = get_last_message(&ctx).await?;
-            msg.delete(&ctx).await
-        }
-    };
+    let mentions = msg.mentions;
+    let response = mentions
+        .iter()
+        .fold(String::from("Mentions:\n"),
+            |acc, cur| {
+                format!("{acc}, {}", cur.name)
+        });
 
-    if let Err(e) = res {
-        ctx.say(format!("Unable to delete command: {e}")).await?;
-    }
-
+    ctx.say(response).await?;
     Ok(())
 }

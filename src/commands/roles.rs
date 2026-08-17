@@ -1,9 +1,12 @@
 use std::collections::{HashMap, HashSet};
 use std::hash::Hash;
+use std::time::Duration;
 
+use crate::utils::get_last_message;
 use crate::{Context, Error};
 use levenshtein::levenshtein;
-use poise::{serenity_prelude::{EditRole, Role, RoleId}};
+use poise::serenity_prelude::{self as serenity, EditRole, Role, RoleId};
+use tokio::time::sleep;
 
 /// List server roles
 #[poise::command(prefix_command, slash_command, guild_only)]
@@ -264,6 +267,104 @@ pub async fn my_roles(
     };
 
     ctx.say(message).await?;
+
+    Ok(())
+}
+
+/// Helper to check if a user is allowed to delete a message
+fn can_delete(
+    message: &serenity::Message,
+    member_id: serenity::UserId,
+    bot_id: serenity::UserId,
+) -> bool {
+    message.author.id == bot_id
+        && message
+            .mentions
+            .iter()
+            .any(|user| user.id == member_id)
+}
+
+/// Helper to display a denial message when a user is not allowed to delete a message.
+async fn deny(ctx: Context<'_>) -> Result<(), Error> {
+    let sent = ctx
+        .channel_id()
+        .say(ctx.http(), "You can't delete that message")
+        .await?;
+
+    sleep(Duration::from_secs(5)).await;
+    sent.delete(ctx.http()).await?;
+
+    Ok(())
+}
+
+/// Deletes a message that the bot had sent.
+///
+/// You can provide one or more message IDs, reply to the message you want deleted, or use the
+/// command with no arguments to delete the bot's previous message.
+#[poise::command(
+    prefix_command,
+)]
+pub async fn private(
+    ctx: Context<'_>,
+    #[rest]
+    message_ids: Option<String>,
+) -> Result<(), Error> {
+    let member_id = ctx.author().id;
+    let bot_id = ctx.framework().bot_id;
+    let channel_id = ctx.channel_id();
+
+    // This command is prefix only, so extract the prefix context
+    let prefix_ctx = match ctx {
+        poise::Context::Prefix(prefix_ctx) => prefix_ctx,
+        poise::Context::Application(_) => return Ok(()),
+    };
+
+    let command_message = prefix_ctx.msg;
+
+    // delete by id, i.e. !private 123456789 987654321
+    if let Some(ids) = message_ids.filter(|ids| !ids.trim().is_empty()) {
+        for id in ids.split_whitespace() {
+            let id = match id.parse::<u64>() {
+                Ok(id) => serenity::MessageId::new(id),
+                Err(_) => {
+                    deny(ctx).await?;
+                    continue;
+                }
+            };
+
+            let deletion = match channel_id.message(ctx.http(), id).await {
+                Ok(message) => message,
+                Err(_) => {
+                    deny(ctx).await?;
+                    continue;
+                }
+            };
+
+            if can_delete(&deletion, member_id, bot_id) {
+                deletion.delete(ctx.http()).await?;
+            } else {
+                deny(ctx).await?;
+            }
+        }
+    // !private used as a reply
+    } else if let Some(deletion) = command_message.referenced_message.as_deref() {
+        if can_delete(deletion, member_id, bot_id) {
+            deletion.delete(ctx.http()).await?;
+        } else {
+            deny(ctx).await?;
+        }
+    } else {
+        let deletion = get_last_message(&ctx).await?;
+
+        if can_delete(&deletion, member_id, bot_id) {
+            deletion.delete(ctx.http()).await?;
+        } else {
+            deny(ctx).await?;
+        }
+    }
+
+    sleep(Duration::from_secs(5)).await;
+    command_message.delete(ctx.http()).await?;
 
     Ok(())
 }
